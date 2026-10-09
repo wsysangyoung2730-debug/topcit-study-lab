@@ -2,7 +2,7 @@
 
 문제를 풀고, **정답과 모든 보기의 해설을 함께 읽는** TOPCIT 개인 학습 사이트입니다.
 
-[사이트 열기](https://wsysangyoung2730-debug.github.io/topcit-study-lab/) · [문항 구성과 출처](docs/content-policy.md)
+[사이트 열기](https://topcit-study-lab.vercel.app/) · [문항 구성과 출처](docs/content-policy.md)
 
 ## 학습 기능
 
@@ -40,9 +40,13 @@ npm run preview
 - `src/lib/`: 채점, 학습 세션, IndexedDB 기록
 - `scripts/validate-content.ts`: 750문항의 구조와 회차 배점 검증
 - `tests/`: 채점·기록·무작위 출제의 회귀 검증
-- `.github/workflows/`: PR 검증과 main의 GitHub Pages 배포
+- `.github/workflows/`: PR 및 main·develop의 자동 검증
 
 새 문항은 `src/types.ts`의 `Question` 구조를 따릅니다. 객관식은 네 보기 각각의 설명이 필요하며, 자유 답안은 모범답안과 배점 합이 일치하는 평가 기준을 포함합니다. 통합형은 하위 문항 합을 검증합니다.
+
+## Vercel 배포
+
+Vite 프리셋을 사용하며 `vercel.json`에서 문항 검증 → 회귀 테스트 → 빌드를 순서대로 수행합니다. 출력 폴더는 `dist`입니다. GitHub 저장소의 `main`을 프로덕션 브랜치로 사용합니다. `.vercel`의 로컬 프로젝트 정보와 환경 파일은 저장소에 포함하지 않습니다.
 
 ## 기록 보관
 
