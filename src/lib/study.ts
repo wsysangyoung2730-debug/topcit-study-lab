@@ -213,6 +213,16 @@ export function isStudyState(value: unknown): value is StudyState {
             (e) =>
               e &&
               typeof e.id === "string" &&
+              (e.label === undefined || typeof e.label === "string") &&
+              (e.kind === undefined ||
+                [
+                  "arrow",
+                  "line",
+                  "inheritance",
+                  "aggregation",
+                  "composition",
+                  "dependency",
+                ].includes(e.kind)) &&
               a.diagram!.nodes.some((n) => n.id === e.from) &&
               a.diagram!.nodes.some((n) => n.id === e.to),
           ))),

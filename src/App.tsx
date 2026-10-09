@@ -40,7 +40,7 @@ import {
   type Session,
   type StudyState,
 } from "./lib/study";
-import { exportState, readState, writeState } from "./lib/storage";
+import { exportState, readState, writeState, stageState } from "./lib/storage";
 import { QuestionPanel, RichText } from "./components/QuestionPanel";
 const lookup = new Map(questions.map((q) => [q.id, q]));
 const modeLabels: Record<Mode, string> = {
@@ -66,6 +66,22 @@ export default function App() {
     [confirmFinish, setConfirmFinish] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
   const hydrated = useRef(false);
+  const latestState = useRef(state);
+  latestState.current = state;
+  useEffect(() => {
+    const flush = () => {
+      if (hydrated.current) stageState(latestState.current);
+    };
+    const hidden = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", hidden);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", hidden);
+    };
+  }, []);
   const finishRef = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!confirmFinish) return;

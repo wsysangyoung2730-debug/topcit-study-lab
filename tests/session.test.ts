@@ -139,3 +139,20 @@ test("기존 학습을 다시 열어도 마지막 확인 시각으로 결과를 
   };
   assert.equal(latestAnswer(state, "q")?.correct, true);
 });
+
+test("도식 연결선의 객체 라벨을 가져오기에서 거부한다", () => {
+  const node = { id: "a", x: 100, y: 100, label: "A", shape: "action" };
+  const state = {
+    ...emptyState(),
+    answers: {
+      x: {
+        ...emptyAnswer(),
+        diagram: {
+          nodes: [node],
+          edges: [{ id: "e", from: "a", to: "a", label: { invalid: true } }],
+        },
+      },
+    },
+  };
+  assert.equal(isStudyState(state), false);
+});
