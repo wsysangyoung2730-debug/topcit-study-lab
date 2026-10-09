@@ -1050,7 +1050,7 @@ export default function App() {
                 ? "제출 후에는 답안을 수정할 수 없고 해설이 공개됩니다."
                 : "기록은 저장되어 학습 기록에서 다시 볼 수 있어요."}
             </p>
-            {sessionScore && (
+            {sessionScore && (active.mode !== "exam" || active.endedAt) && (
               <div className="modal-scores">
                 <span>
                   자동 채점{" "}
