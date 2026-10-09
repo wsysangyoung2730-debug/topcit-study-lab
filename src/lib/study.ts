@@ -88,11 +88,23 @@ export function latestAnswer(
   state: StudyState,
   id: string,
 ): Answer | undefined {
-  for (const s of [...state.sessions].reverse()) {
-    const a = state.answers[answerKey(s, id)];
-    if (a && (a.checked || Object.values(a.parts).some((p) => p.checked)))
-      return a;
+  let latest: Answer | undefined;
+  let lastTime = -Infinity;
+  const checkedTime = (a: Answer, fallback: number): number =>
+    Math.max(
+      a.checked ? (a.history?.at(-1)?.at ?? fallback) : -Infinity,
+      ...Object.values(a.parts).map((p) => checkedTime(p, fallback)),
+    );
+  for (const session of [...state.sessions].reverse()) {
+    const answer = state.answers[answerKey(session, id)];
+    if (!answer) continue;
+    const time = checkedTime(answer, session.startedAt);
+    if (time > lastTime) {
+      latest = answer;
+      lastTime = time;
+    }
   }
+  return latest;
 }
 export function automaticResults(a?: Answer): boolean[] {
   return !a

@@ -117,3 +117,25 @@ test("가져오기에서 잘못된 위치·중복 평가·끊긴 도식을 거�
     true,
   );
 });
+
+test("기존 학습을 다시 열어도 마지막 확인 시각으로 결과를 선택한다", () => {
+  const recent = { ...session, id: "newer", startedAt: 200 };
+  const oldAnswer = {
+    ...emptyAnswer(),
+    checked: true,
+    correct: true,
+    history: [{ at: 400, value: "b", correct: true }],
+  };
+  const newerAnswer = {
+    ...emptyAnswer(),
+    checked: true,
+    correct: false,
+    history: [{ at: 210, value: "a", correct: false }],
+  };
+  const state = {
+    ...emptyState(),
+    sessions: [session, recent],
+    answers: { "s::q": oldAnswer, "newer::q": newerAnswer },
+  };
+  assert.equal(latestAnswer(state, "q")?.correct, true);
+});
