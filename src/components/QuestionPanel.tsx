@@ -393,6 +393,12 @@ export function QuestionPanel({
                   {q.sources.map((source, i) => (
                     <p key={i}>
                       {source.title} · {source.chapter} {source.pages}
+                      {source.note && (
+                        <>
+                          <br />
+                          {source.note}
+                        </>
+                      )}
                       {source.url && (
                         <>
                           {" "}

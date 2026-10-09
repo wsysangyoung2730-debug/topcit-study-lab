@@ -27,6 +27,7 @@ import {
   automaticResults,
   emptyAnswer,
   emptyState,
+  expandPublicStudySessions,
   grade,
   hasAnswer,
   isStudyState,
@@ -45,6 +46,7 @@ import { ConceptGuide } from "./components/ConceptGuide";
 import { relatedConcepts } from "./concepts";
 import { ResizablePanes } from "./components/ResizablePanes";
 const lookup = new Map(questions.map((q) => [q.id, q]));
+const publicQuestionIds = questions.filter((q) => q.round === 0).map((q) => q.id);
 const modeLabels: Record<Mode, string> = {
   study: "학습 모드",
   exam: "모의시험",
@@ -95,7 +97,7 @@ export default function App() {
   useEffect(() => {
     readState()
       .then((s) => {
-        setState(s);
+        setState(expandPublicStudySessions(s, publicQuestionIds));
         hydrated.current = true;
         setReady(true);
         setSaveStatus("기록 저장됨");
@@ -246,7 +248,7 @@ export default function App() {
       if (!isStudyState(parsed)) throw new Error();
       if (!window.confirm("백업 파일의 기록으로 현재 학습 기록을 교체할까요?"))
         return;
-      setState(parsed);
+      setState(expandPublicStudySessions(parsed, publicQuestionIds));
       setView("home");
       setNotice("학습 기록을 가져왔습니다.");
     } catch {
@@ -721,14 +723,12 @@ export default function App() {
                     </div>
                     <OfficialCard
                       startExam={() =>
-                        start("exam", questions.filter((q) => q.round === 0).map((q) => q.id), 0)
+                        start("exam", publicQuestionIds, 0)
                       }
                       start={() =>
                         start(
                           "study",
-                          questions
-                            .filter((q) => q.round === 0)
-                            .map((q) => q.id),
+                          publicQuestionIds,
                           0,
                         )
                       }
