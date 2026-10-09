@@ -1,25 +1,588 @@
-import {useId,useRef,useState} from 'react';
-import type {Diagram,DiagramNode,DiagramEdge,Shape} from '../types';
-const shapes: [Shape,string][]=[['action','활동'],['decision','분기'],['start','시작'],['end','종료'],['bar','동기화'],['class','클래스'],['entity','엔터티']];
-const names=Object.fromEntries(shapes) as Record<Shape,string>;
-const size=(n:DiagramNode)=>n.shape==='start'||n.shape==='end'?{w:32,h:32}:n.shape==='bar'?{w:170,h:10}:n.shape==='decision'?{w:140,h:85}:{w:200,h:Math.max(n.shape==='class'||n.shape==='entity'?105:65,n.label.split('\n').length*20+26)};
-export function DiagramView({value,onSelect,onMove,selected,svgRef,onMoveStart}:{value:Diagram;onSelect?:(id:string)=>void;onMove?:(id:string,x:number,y:number)=>void;selected?:string;onMoveStart?:()=>void;svgRef?:React.RefObject<SVGSVGElement|null>}){
- const uid=useId().replace(/:/g,'');const drag=useRef<{id:string;dx:number;dy:number}|null>(null);
- return <svg ref={svgRef} viewBox="0 0 800 600" className="diagram-canvas" role="img" aria-label="UML 다이어그램" onPointerMove={e=>{if(!drag.current||!onMove)return;const r=e.currentTarget.getBoundingClientRect();onMove(drag.current.id,Math.max(30,Math.min(770,(e.clientX-r.left)*800/r.width-drag.current.dx)),Math.max(30,Math.min(570,(e.clientY-r.top)*600/r.height-drag.current.dy)));}} onPointerUp={()=>{drag.current=null;}} onPointerCancel={()=>{drag.current=null;}}>
- <defs><pattern id={`${uid}-grid`} width="20" height="20" patternUnits="userSpaceOnUse"><path d="M20 0H0V20" fill="none" stroke="#e1e8df" strokeWidth=".7"/></pattern><marker id={`${uid}-arrow`} viewBox="0 0 12 12" refX="11" refY="6" markerWidth="9" markerHeight="9" orient="auto"><path d="M1 1L11 6L1 11" fill="none" stroke="#244a42" strokeWidth="1.6"/></marker><marker id={`${uid}-inheritance`} viewBox="0 0 14 14" refX="13" refY="7" markerWidth="13" markerHeight="13" orient="auto"><path d="M1 1L13 7L1 13Z" fill="white" stroke="#244a42"/></marker>{['aggregation','composition'].map(k=><marker key={k} id={`${uid}-${k}`} viewBox="0 0 16 12" refX="1" refY="6" markerWidth="14" markerHeight="12" orient="auto"><path d="M1 6L8 1L15 6L8 11Z" fill={k==='composition'?'#244a42':'white'} stroke="#244a42"/></marker>)}</defs>
- <rect width="800" height="600" fill="#fafcf9"/><rect width="800" height="600" fill={`url(#${uid}-grid)`}/>
- {value.edges.map(e=>{const a=value.nodes.find(n=>n.id===e.from),b=value.nodes.find(n=>n.id===e.to);if(!a||!b)return null;const sa=size(a),sb=size(b),dx=b.x-a.x,dy=b.y-a.y;if(!dx&&!dy)return null;const ratio=(w:number,h:number)=>Math.min(Math.abs(dx)>.001?w/2/Math.abs(dx):Infinity,Math.abs(dy)>.001?h/2/Math.abs(dy):Infinity);const ra=ratio(sa.w,sa.h),rb=ratio(sb.w,sb.h);const x1=a.x+dx*ra,y1=a.y+dy*ra,x2=b.x-dx*rb,y2=b.y-dy*rb;const k=e.kind??'arrow';return <g key={e.id}><path d={`M${x1} ${y1}L${x2} ${y2}`} stroke="#244a42" strokeWidth="1.8" fill="none" strokeDasharray={k==='dependency'?'6 4':undefined} markerStart={k==='aggregation'||k==='composition'?`url(#${uid}-${k})`:undefined} markerEnd={k==='line'||k==='aggregation'||k==='composition'?undefined:`url(#${uid}-${k==='inheritance'?'inheritance':'arrow'})`}/>{e.label&&<text x={(x1+x2)/2+6} y={(y1+y2)/2-9} fontSize="13" fill="#173e34" paintOrder="stroke" stroke="#fafcf9" strokeWidth="5">{e.label}</text>}</g>;})}
- {value.nodes.map(n=>{const {w,h}=size(n),circle=n.shape==='start'||n.shape==='end';return <g key={n.id} transform={`translate(${n.x},${n.y})`} tabIndex={onSelect?0:undefined} role={onSelect?'button':undefined} aria-label={`${names[n.shape]} ${n.label}`} style={{cursor:onSelect?'move':'default',touchAction:'none'}} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect?.(n.id);}const directions:Record<string,[number,number]>={ArrowUp:[0,-10],ArrowDown:[0,10],ArrowLeft:[-10,0],ArrowRight:[10,0]};if(onMove&&directions[e.key]){e.preventDefault();onMoveStart?.();onMove(n.id,n.x+directions[e.key][0],n.y+directions[e.key][1]);}}} onPointerDown={e=>{if(!onMove)return;onMoveStart?.();e.stopPropagation();onSelect?.(n.id);const svg=e.currentTarget.ownerSVGElement!,r=svg.getBoundingClientRect();drag.current={id:n.id,dx:(e.clientX-r.left)*800/r.width-n.x,dy:(e.clientY-r.top)*600/r.height-n.y};svg.setPointerCapture(e.pointerId);}}>
- {selected===n.id&&<rect x={-w/2-5} y={-h/2-5} width={w+10} height={h+10} fill="none" stroke="#cb983b" strokeDasharray="5 3"/>}
- {circle?<><circle r="16" fill={n.shape==='start'?'#244a42':'white'} stroke="#244a42" strokeWidth="2"/>{n.shape==='end'&&<circle r="10" fill="#244a42"/>}</>:n.shape==='decision'?<polygon points={`0,${-h/2} ${w/2},0 0,${h/2} ${-w/2},0`} fill="white" stroke="#244a42" strokeWidth="1.8"/>:<rect x={-w/2} y={-h/2} width={w} height={h} rx={n.shape==='action'?12:0} fill={n.shape==='bar'?'#244a42':'white'} stroke="#244a42" strokeWidth="1.8"/>}
- {!circle&&n.shape!=='bar'&&n.label.split('\n').map((line,i)=><text key={i} x={n.shape==='class'||n.shape==='entity'?-w/2+10:0} y={-h/2+25+i*20} textAnchor={n.shape==='class'||n.shape==='entity'?'start':'middle'} fontSize="13" fontWeight={i===0&&n.shape==='class'?600:400} fill="#213d36">{line}</text>)}{(n.shape==='class'||n.shape==='entity')&&<line x1={-w/2} x2={w/2} y1={-h/2+33} y2={-h/2+33} stroke="#244a42"/>}</g>;})}</svg>;
+import { useId, useRef, useState } from "react";
+import type { Diagram, DiagramNode, DiagramEdge, Shape } from "../types";
+const shapes: [Shape, string][] = [
+  ["action", "활동"],
+  ["decision", "분기"],
+  ["start", "시작"],
+  ["end", "종료"],
+  ["bar", "동기화"],
+  ["class", "클래스"],
+  ["entity", "엔터티"],
+];
+const names = Object.fromEntries(shapes) as Record<Shape, string>;
+const size = (n: DiagramNode) =>
+  n.shape === "start" || n.shape === "end"
+    ? { w: 32, h: 32 }
+    : n.shape === "bar"
+      ? { w: 170, h: 10 }
+      : n.shape === "decision"
+        ? { w: 140, h: 85 }
+        : {
+            w: 200,
+            h: Math.max(
+              n.shape === "class" || n.shape === "entity" ? 105 : 65,
+              n.label.split("\n").length * 20 + 26,
+            ),
+          };
+export function DiagramView({
+  value,
+  onSelect,
+  onMove,
+  selected,
+  svgRef,
+  onMoveStart,
+}: {
+  value: Diagram;
+  onSelect?: (id: string) => void;
+  onMove?: (id: string, x: number, y: number) => void;
+  selected?: string;
+  onMoveStart?: () => void;
+  svgRef?: React.RefObject<SVGSVGElement | null>;
+}) {
+  const uid = useId().replace(/:/g, "");
+  const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  return (
+    <svg
+      ref={svgRef}
+      viewBox="0 0 800 600"
+      className="diagram-canvas"
+      role="img"
+      aria-label="UML 다이어그램"
+      onPointerMove={(e) => {
+        if (!drag.current || !onMove) return;
+        const r = e.currentTarget.getBoundingClientRect();
+        onMove(
+          drag.current.id,
+          Math.max(
+            30,
+            Math.min(
+              770,
+              ((e.clientX - r.left) * 800) / r.width - drag.current.dx,
+            ),
+          ),
+          Math.max(
+            30,
+            Math.min(
+              570,
+              ((e.clientY - r.top) * 600) / r.height - drag.current.dy,
+            ),
+          ),
+        );
+      }}
+      onPointerUp={() => {
+        drag.current = null;
+      }}
+      onPointerCancel={() => {
+        drag.current = null;
+      }}
+    >
+      <defs>
+        <pattern
+          id={`${uid}-grid`}
+          width="20"
+          height="20"
+          patternUnits="userSpaceOnUse"
+        >
+          <path d="M20 0H0V20" fill="none" stroke="#e1e8df" strokeWidth=".7" />
+        </pattern>
+        <marker
+          id={`${uid}-arrow`}
+          viewBox="0 0 12 12"
+          refX="11"
+          refY="6"
+          markerWidth="9"
+          markerHeight="9"
+          orient="auto"
+        >
+          <path
+            d="M1 1L11 6L1 11"
+            fill="none"
+            stroke="#244a42"
+            strokeWidth="1.6"
+          />
+        </marker>
+        <marker
+          id={`${uid}-inheritance`}
+          viewBox="0 0 14 14"
+          refX="13"
+          refY="7"
+          markerWidth="13"
+          markerHeight="13"
+          orient="auto"
+        >
+          <path d="M1 1L13 7L1 13Z" fill="white" stroke="#244a42" />
+        </marker>
+        {["aggregation", "composition"].map((k) => (
+          <marker
+            key={k}
+            id={`${uid}-${k}`}
+            viewBox="0 0 16 12"
+            refX="1"
+            refY="6"
+            markerWidth="14"
+            markerHeight="12"
+            orient="auto"
+          >
+            <path
+              d="M1 6L8 1L15 6L8 11Z"
+              fill={k === "composition" ? "#244a42" : "white"}
+              stroke="#244a42"
+            />
+          </marker>
+        ))}
+      </defs>
+      <rect width="800" height="600" fill="#fafcf9" />
+      <rect width="800" height="600" fill={`url(#${uid}-grid)`} />
+      {value.edges.map((e) => {
+        const a = value.nodes.find((n) => n.id === e.from),
+          b = value.nodes.find((n) => n.id === e.to);
+        if (!a || !b) return null;
+        const sa = size(a),
+          sb = size(b),
+          dx = b.x - a.x,
+          dy = b.y - a.y;
+        if (!dx && !dy) return null;
+        const ratio = (w: number, h: number) =>
+          Math.min(
+            Math.abs(dx) > 0.001 ? w / 2 / Math.abs(dx) : Infinity,
+            Math.abs(dy) > 0.001 ? h / 2 / Math.abs(dy) : Infinity,
+          );
+        const ra = ratio(sa.w, sa.h),
+          rb = ratio(sb.w, sb.h);
+        const x1 = a.x + dx * ra,
+          y1 = a.y + dy * ra,
+          x2 = b.x - dx * rb,
+          y2 = b.y - dy * rb;
+        const k = e.kind ?? "arrow";
+        return (
+          <g key={e.id}>
+            <path
+              d={`M${x1} ${y1}L${x2} ${y2}`}
+              stroke="#244a42"
+              strokeWidth="1.8"
+              fill="none"
+              strokeDasharray={k === "dependency" ? "6 4" : undefined}
+              markerStart={
+                k === "aggregation" || k === "composition"
+                  ? `url(#${uid}-${k})`
+                  : undefined
+              }
+              markerEnd={
+                k === "line" || k === "aggregation" || k === "composition"
+                  ? undefined
+                  : `url(#${uid}-${k === "inheritance" ? "inheritance" : "arrow"})`
+              }
+            />
+            {e.label && (
+              <text
+                x={(x1 + x2) / 2 + 6}
+                y={(y1 + y2) / 2 - 9}
+                fontSize="13"
+                fill="#173e34"
+                paintOrder="stroke"
+                stroke="#fafcf9"
+                strokeWidth="5"
+              >
+                {e.label}
+              </text>
+            )}
+          </g>
+        );
+      })}
+      {value.nodes.map((n) => {
+        const { w, h } = size(n),
+          circle = n.shape === "start" || n.shape === "end";
+        return (
+          <g
+            key={n.id}
+            transform={`translate(${n.x},${n.y})`}
+            tabIndex={onSelect ? 0 : undefined}
+            role={onSelect ? "button" : undefined}
+            aria-label={`${names[n.shape]} ${n.label}`}
+            style={{
+              cursor: onSelect ? "move" : "default",
+              touchAction: "none",
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onSelect?.(n.id);
+              }
+              const directions: Record<string, [number, number]> = {
+                ArrowUp: [0, -10],
+                ArrowDown: [0, 10],
+                ArrowLeft: [-10, 0],
+                ArrowRight: [10, 0],
+              };
+              if (onMove && directions[e.key]) {
+                e.preventDefault();
+                onMoveStart?.();
+                onMove(
+                  n.id,
+                  n.x + directions[e.key][0],
+                  n.y + directions[e.key][1],
+                );
+              }
+            }}
+            onPointerDown={(e) => {
+              if (!onMove) return;
+              onMoveStart?.();
+              e.stopPropagation();
+              onSelect?.(n.id);
+              const svg = e.currentTarget.ownerSVGElement!,
+                r = svg.getBoundingClientRect();
+              drag.current = {
+                id: n.id,
+                dx: ((e.clientX - r.left) * 800) / r.width - n.x,
+                dy: ((e.clientY - r.top) * 600) / r.height - n.y,
+              };
+              svg.setPointerCapture(e.pointerId);
+            }}
+          >
+            {selected === n.id && (
+              <rect
+                x={-w / 2 - 5}
+                y={-h / 2 - 5}
+                width={w + 10}
+                height={h + 10}
+                fill="none"
+                stroke="#cb983b"
+                strokeDasharray="5 3"
+              />
+            )}
+            {circle ? (
+              <>
+                <circle
+                  r="16"
+                  fill={n.shape === "start" ? "#244a42" : "white"}
+                  stroke="#244a42"
+                  strokeWidth="2"
+                />
+                {n.shape === "end" && <circle r="10" fill="#244a42" />}
+              </>
+            ) : n.shape === "decision" ? (
+              <polygon
+                points={`0,${-h / 2} ${w / 2},0 0,${h / 2} ${-w / 2},0`}
+                fill="white"
+                stroke="#244a42"
+                strokeWidth="1.8"
+              />
+            ) : (
+              <rect
+                x={-w / 2}
+                y={-h / 2}
+                width={w}
+                height={h}
+                rx={n.shape === "action" ? 12 : 0}
+                fill={n.shape === "bar" ? "#244a42" : "white"}
+                stroke="#244a42"
+                strokeWidth="1.8"
+              />
+            )}
+            {!circle &&
+              n.shape !== "bar" &&
+              n.label.split("\n").map((line, i) => (
+                <text
+                  key={i}
+                  x={
+                    n.shape === "class" || n.shape === "entity"
+                      ? -w / 2 + 10
+                      : 0
+                  }
+                  y={
+                    n.shape === "class" || n.shape === "entity"
+                      ? -h / 2 + 25 + i * 20
+                      : (i - (n.label.split("\n").length - 1) / 2) * 20 + 5
+                  }
+                  textAnchor={
+                    n.shape === "class" || n.shape === "entity"
+                      ? "start"
+                      : "middle"
+                  }
+                  fontSize="13"
+                  fontWeight={i === 0 && n.shape === "class" ? 600 : 400}
+                  fill="#213d36"
+                >
+                  {line}
+                </text>
+              ))}
+            {n.shape === "class" &&
+              (() => {
+                const index = n.label
+                  .split("\n")
+                  .findIndex((line, i) => i > 0 && line.includes("("));
+                return index > 1 ? (
+                  <line
+                    x1={-w / 2}
+                    x2={w / 2}
+                    y1={-h / 2 + 15 + index * 20}
+                    y2={-h / 2 + 15 + index * 20}
+                    stroke="#244a42"
+                  />
+                ) : null;
+              })()}
+            {(n.shape === "class" || n.shape === "entity") && (
+              <line
+                x1={-w / 2}
+                x2={w / 2}
+                y1={-h / 2 + 33}
+                y2={-h / 2 + 33}
+                stroke="#244a42"
+              />
+            )}
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
-export function DiagramEditor({value,onChange,disabled=false}:{value:Diagram;onChange:(v:Diagram)=>void;disabled?:boolean}){
- const [selected,setSelected]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[kind,setKind]=useState<DiagramEdge['kind']>('arrow'),[label,setLabel]=useState('');const history=useRef<Diagram[]>([]),svg=useRef<SVGSVGElement>(null);const node=value.nodes.find(n=>n.id===selected);
- function update(next:Diagram){history.current=[...history.current.slice(-29),structuredClone(value)];onChange(next);}
- function download(){if(!svg.current)return;const clone=svg.current.cloneNode(true) as SVGSVGElement;clone.setAttribute('xmlns','http://www.w3.org/2000/svg');clone.setAttribute('width','800');clone.setAttribute('height','600');const url=URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'})),a=document.createElement('a');a.href=url;a.download='my-diagram.svg';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
- return <div className="diagram-editor">{!disabled&&<><div className="diagram-toolbar">{shapes.map(([shape,name])=><button type="button" key={shape} onClick={()=>{const id=crypto.randomUUID();update({...value,nodes:[...value.nodes,{id,shape,label:shape==='class'?'ClassName\n- field: type\n+ method(): void':['start','end','bar'].includes(shape)?'':name,x:160+value.nodes.length%3*230,y:80+Math.floor(value.nodes.length/3)%4*130}]});setSelected(id);}}>＋ {name}</button>)}</div><div className="diagram-tools"><label>출발<select value={from} onChange={e=>setFrom(e.target.value)}><option value="">선택</option>{value.nodes.map(n=><option key={n.id} value={n.id}>{n.label.split('\n')[0]||names[n.shape]}</option>)}</select></label><label>도착<select value={to} onChange={e=>setTo(e.target.value)}><option value="">선택</option>{value.nodes.map(n=><option key={n.id} value={n.id}>{n.label.split('\n')[0]||names[n.shape]}</option>)}</select></label><label>관계<select value={kind} onChange={e=>setKind(e.target.value as DiagramEdge['kind'])}>{[['arrow','흐름 →'],['line','연관 ─'],['inheritance','상속 △ (도착=부모)'],['aggregation','집합 ◇ (출발=전체)'],['composition','합성 ◆ (출발=전체)'],['dependency','의존 ⇢']].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label><label>조건·이름<input value={label} onChange={e=>setLabel(e.target.value)} placeholder="[성공], 1..*"/></label><button disabled={!from||!to||from===to} onClick={()=>update({...value,edges:[...value.edges,{id:crypto.randomUUID(),from,to,kind,label}]})}>연결</button></div></>}
- <DiagramView value={value} selected={disabled?undefined:selected} svgRef={svg} onMoveStart={()=>{history.current=[...history.current.slice(-29),structuredClone(value)];}} onSelect={disabled?undefined:setSelected} onMove={disabled?undefined:(id,x,y)=>onChange({...value,nodes:value.nodes.map(n=>n.id===id?{...n,x,y}:n)})}/>
- {!disabled&&<div className="diagram-properties"><div>{node?<label>선택한 도형의 내용<textarea aria-label="도형 내용" rows={3} value={node.label} onChange={e=>update({...value,nodes:value.nodes.map(n=>n.id===selected?{...n,label:e.target.value}:n)})}/></label>:<p>도형 선택 후 내용을 입력하세요. 드래그 또는 방향키로 이동합니다.</p>}</div><div className="inline-buttons"><button disabled={!node} onClick={()=>{update({nodes:value.nodes.filter(n=>n.id!==selected),edges:value.edges.filter(e=>e.from!==selected&&e.to!==selected)});setSelected('');}}>도형 삭제</button><button disabled={!history.current.length} onClick={()=>{const last=history.current.pop();if(last)onChange(last);}}>실행 취소</button><button onClick={download}>SVG 저장</button></div></div>}
- {!disabled&&value.edges.length>0&&<details><summary>연결선 관리 ({value.edges.length})</summary>{value.edges.map(e=><div className="edge-row" key={e.id}><span>{value.nodes.find(n=>n.id===e.from)?.label.split('\n')[0]||'시작'} → {value.nodes.find(n=>n.id===e.to)?.label.split('\n')[0]||'종료'} {e.label}</span><button onClick={()=>update({...value,edges:value.edges.filter(x=>x.id!==e.id)})}>삭제</button></div>)}</details>}</div>;
+export function DiagramEditor({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: Diagram;
+  onChange: (v: Diagram) => void;
+  disabled?: boolean;
+}) {
+  const [selected, setSelected] = useState(""),
+    [from, setFrom] = useState(""),
+    [to, setTo] = useState(""),
+    [kind, setKind] = useState<DiagramEdge["kind"]>("arrow"),
+    [label, setLabel] = useState("");
+  const history = useRef<Diagram[]>([]),
+    svg = useRef<SVGSVGElement>(null);
+  const node = value.nodes.find((n) => n.id === selected);
+  function update(next: Diagram) {
+    history.current = [...history.current.slice(-29), structuredClone(value)];
+    onChange(next);
+  }
+  function download() {
+    if (!svg.current) return;
+    const clone = svg.current.cloneNode(true) as SVGSVGElement;
+    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    clone.setAttribute("width", "800");
+    clone.setAttribute("height", "600");
+    const url = URL.createObjectURL(
+        new Blob([new XMLSerializer().serializeToString(clone)], {
+          type: "image/svg+xml",
+        }),
+      ),
+      a = document.createElement("a");
+    a.href = url;
+    a.download = "my-diagram.svg";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <div className="diagram-editor">
+      {!disabled && (
+        <>
+          <div className="diagram-toolbar">
+            {shapes.map(([shape, name]) => (
+              <button
+                type="button"
+                key={shape}
+                onClick={() => {
+                  const id = crypto.randomUUID();
+                  update({
+                    ...value,
+                    nodes: [
+                      ...value.nodes,
+                      {
+                        id,
+                        shape,
+                        label:
+                          shape === "class"
+                            ? "ClassName\n- field: type\n+ method(): void"
+                            : ["start", "end", "bar"].includes(shape)
+                              ? ""
+                              : name,
+                        x: 160 + (value.nodes.length % 3) * 230,
+                        y: 80 + (Math.floor(value.nodes.length / 3) % 4) * 130,
+                      },
+                    ],
+                  });
+                  setSelected(id);
+                }}
+              >
+                ＋ {name}
+              </button>
+            ))}
+          </div>
+          <div className="diagram-tools">
+            <label>
+              출발
+              <select value={from} onChange={(e) => setFrom(e.target.value)}>
+                <option value="">선택</option>
+                {value.nodes.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.label.split("\n")[0] || names[n.shape]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              도착
+              <select value={to} onChange={(e) => setTo(e.target.value)}>
+                <option value="">선택</option>
+                {value.nodes.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.label.split("\n")[0] || names[n.shape]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              관계
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value as DiagramEdge["kind"])}
+              >
+                {[
+                  ["arrow", "흐름 →"],
+                  ["line", "연관 ─"],
+                  ["inheritance", "상속 △ (도착=부모)"],
+                  ["aggregation", "집합 ◇ (출발=전체)"],
+                  ["composition", "합성 ◆ (출발=전체)"],
+                  ["dependency", "의존 ⇢"],
+                ].map(([v, t]) => (
+                  <option key={v} value={v}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              조건·이름
+              <input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="[성공], 1..*"
+              />
+            </label>
+            <button
+              disabled={!from || !to || from === to}
+              onClick={() =>
+                update({
+                  ...value,
+                  edges: [
+                    ...value.edges,
+                    { id: crypto.randomUUID(), from, to, kind, label },
+                  ],
+                })
+              }
+            >
+              연결
+            </button>
+          </div>
+        </>
+      )}
+      <DiagramView
+        value={value}
+        selected={disabled ? undefined : selected}
+        svgRef={svg}
+        onMoveStart={() => {
+          history.current = [
+            ...history.current.slice(-29),
+            structuredClone(value),
+          ];
+        }}
+        onSelect={disabled ? undefined : setSelected}
+        onMove={
+          disabled
+            ? undefined
+            : (id, x, y) =>
+                onChange({
+                  ...value,
+                  nodes: value.nodes.map((n) =>
+                    n.id === id ? { ...n, x, y } : n,
+                  ),
+                })
+        }
+      />
+      {!disabled && (
+        <div className="diagram-properties">
+          <div>
+            {node ? (
+              <label>
+                선택한 도형의 내용
+                <textarea
+                  aria-label="도형 내용"
+                  rows={3}
+                  value={node.label}
+                  onChange={(e) =>
+                    update({
+                      ...value,
+                      nodes: value.nodes.map((n) =>
+                        n.id === selected ? { ...n, label: e.target.value } : n,
+                      ),
+                    })
+                  }
+                />
+              </label>
+            ) : (
+              <p>
+                도형 선택 후 내용을 입력하세요. 드래그 또는 방향키로 이동합니다.
+              </p>
+            )}
+          </div>
+          <div className="inline-buttons">
+            <button
+              disabled={!node}
+              onClick={() => {
+                update({
+                  nodes: value.nodes.filter((n) => n.id !== selected),
+                  edges: value.edges.filter(
+                    (e) => e.from !== selected && e.to !== selected,
+                  ),
+                });
+                setSelected("");
+              }}
+            >
+              도형 삭제
+            </button>
+            <button
+              disabled={!history.current.length}
+              onClick={() => {
+                const last = history.current.pop();
+                if (last) onChange(last);
+              }}
+            >
+              실행 취소
+            </button>
+            <button onClick={download}>SVG 저장</button>
+          </div>
+        </div>
+      )}
+      {!disabled && value.edges.length > 0 && (
+        <details>
+          <summary>연결선 관리 ({value.edges.length})</summary>
+          {value.edges.map((e) => (
+            <div className="edge-row" key={e.id}>
+              <span>
+                {value.nodes
+                  .find((n) => n.id === e.from)
+                  ?.label.split("\n")[0] || "시작"}{" "}
+                →{" "}
+                {value.nodes.find((n) => n.id === e.to)?.label.split("\n")[0] ||
+                  "종료"}{" "}
+                {e.label}
+              </span>
+              <button
+                onClick={() =>
+                  update({
+                    ...value,
+                    edges: value.edges.filter((x) => x.id !== e.id),
+                  })
+                }
+              >
+                삭제
+              </button>
+            </div>
+          ))}
+        </details>
+      )}
+    </div>
+  );
 }
