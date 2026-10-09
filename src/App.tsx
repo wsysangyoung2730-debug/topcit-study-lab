@@ -11,7 +11,6 @@ import {
   ExternalLink,
   GraduationCap,
   LayoutGrid,
-  Leaf,
   Menu,
   Play,
   Search,
@@ -42,6 +41,7 @@ import {
 } from "./lib/study";
 import { exportState, readState, writeState, stageState } from "./lib/storage";
 import { QuestionPanel, RichText } from "./components/QuestionPanel";
+import { ResizablePanes } from "./components/ResizablePanes";
 const lookup = new Map(questions.map((q) => [q.id, q]));
 const modeLabels: Record<Mode, string> = {
   study: "학습 모드",
@@ -288,14 +288,6 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menu ? "open" : ""}`}>
-        <button className="brand" onClick={() => goHome()}>
-          <span className="brand-mark">
-            <Leaf size={24} />
-          </span>
-          <span>
-            TOPCIT<span className="brand-sub">STUDY LAB</span>
-          </span>
-        </button>
         <button
           className="mobile-close icon-button"
           onClick={() => setMenu(false)}
@@ -305,7 +297,7 @@ export default function App() {
         </button>
         {view === "home" ? (
           <>
-            <div className="nav-label">MY LEARNING SPACE</div>
+            <div className="nav-label">학습 메뉴</div>
             <nav>
               {[
                 ["rounds", "회차별 학습", LayoutGrid],
@@ -330,17 +322,12 @@ export default function App() {
               })}
             </nav>
             <div className="sidebar-note">
-              <span className="small-leaf">✳</span>
-              <strong>
-                정답보다 중요한 건,
-                <br />
-                이해하는 과정이에요.
-              </strong>
+              <strong>학습 안내</strong>
               <p>
-                한 문제씩 풀고,
-                <br />
-                다른 보기까지 알아보세요.
+                학습 모드에서는 문항마다 정답과 해설을 확인합니다. 모의시험은
+                제출 후 해설이 공개됩니다.
               </p>
+              <p>서술·코드·도식 답안은 모범답안과 기준으로 직접 평가합니다.</p>
             </div>
           </>
         ) : (
@@ -349,43 +336,118 @@ export default function App() {
               <ArrowLeft size={16} /> 학습실로 돌아가기
             </button>
             <div className="nav-label">
-              QUESTION MAP{" "}
+              문항 목록{" "}
               <span>
                 {done}/{active?.ids.length}
               </span>
             </div>
-            <div className="question-map">
-              {domains.map((d, i) => (
-                <div key={d.id}>
-                  <div className="domain-map-title">
-                    <span style={{ background: d.color }} />M{i + 1}. {d.short}
-                  </div>
-                  <div className="question-grid">
-                    {sessionQuestions.map((item, index) => {
-                      if (item.domain !== d.id) return null;
-                      const record =
-                        active && state.answers[answerKey(active, item.id)];
-                      return (
-                        <button
-                          key={item.id}
-                          title={`${index + 1}번 ${kindLabels[item.kind]}`}
-                          aria-label={`${index + 1}번 문제`}
-                          aria-current={q?.id === item.id ? "step" : undefined}
-                          className={`${q?.id === item.id ? "current" : ""} ${record?.checked ? (record.correct === false ? "wrong" : "done") : hasAnswer(record) ? "written" : ""} ${state.bookmarks.includes(item.id) ? "flagged" : ""}`}
-                          onClick={() => navigate(index)}
-                        >
-                          {index + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="question-map question-map-list">
+              {domains.map((d, i) => {
+                const items = sessionQuestions
+                  .map((item, index) => ({ item, index }))
+                  .filter(({ item }) => item.domain === d.id);
+                if (!items.length) return null;
+                return (
+                  <details className="domain-section" key={d.id} open>
+                    <summary>
+                      M{i + 1}. {d.label}
+                    </summary>
+                    <div className="question-list">
+                      {items.map(({ item, index }) => {
+                        const record =
+                          active && state.answers[answerKey(active, item.id)];
+                        return (
+                          <button
+                            key={item.id}
+                            title={`${index + 1}번 ${kindLabels[item.kind]}`}
+                            aria-label={`${index + 1}번 문제`}
+                            aria-current={
+                              q?.id === item.id ? "step" : undefined
+                            }
+                            className={`${q?.id === item.id ? "current" : ""} ${record?.checked ? (record.correct === false ? "wrong" : "done") : hasAnswer(record) ? "written" : ""} ${state.bookmarks.includes(item.id) ? "flagged" : ""}`}
+                            onClick={() => navigate(index)}
+                          >
+                            <span className="q-status" aria-hidden="true">
+                              {q?.id === item.id
+                                ? "➜"
+                                : record?.checked
+                                  ? "✓"
+                                  : "□"}
+                            </span>
+                            <span className="q-label">
+                              {index + 1}번 [{kindLabels[item.kind]}]
+                            </span>
+                            <span className="q-meta">
+                              {item.points}점
+                              {state.bookmarks.includes(item.id) ? " ☆" : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              })}
             </div>
-            <div className="map-legend">
-              <span>● 풀이 완료</span>
-              <span>● 오답</span>
-              <span>⌑ 북마크</span>
+            <div className="progress-panel">
+              <h3>진행 현황</h3>
+              <table className="progress-table">
+                <thead>
+                  <tr>
+                    <th>구분</th>
+                    <th>미응답</th>
+                    <th>검토</th>
+                    <th>전체</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {domains.map((d, i) => {
+                    const items = sessionQuestions.filter(
+                      (item) => item.domain === d.id,
+                    );
+                    if (!items.length) return null;
+                    return (
+                      <tr key={d.id}>
+                        <th>
+                          M{i + 1}. {d.short}
+                        </th>
+                        <td>
+                          {
+                            items.filter(
+                              (item) =>
+                                !hasAnswer(
+                                  active &&
+                                    state.answers[answerKey(active, item.id)],
+                                ),
+                            ).length
+                          }
+                        </td>
+                        <td>
+                          {
+                            items.filter((item) =>
+                              state.bookmarks.includes(item.id),
+                            ).length
+                          }
+                        </td>
+                        <td>{items.length}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr>
+                    <th>합계</th>
+                    <td>{sessionQuestions.length - done}</td>
+                    <td>
+                      {
+                        sessionQuestions.filter((item) =>
+                          state.bookmarks.includes(item.id),
+                        ).length
+                      }
+                    </td>
+                    <td>{sessionQuestions.length}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p className="map-legend">✓ 확인 완료 · 주황색: 오답 · ☆ 검토</p>
             </div>
           </>
         )}
@@ -401,7 +463,7 @@ export default function App() {
               <Upload size={14} /> 가져오기
             </button>
           </div>
-          <p>이 브라우저에 학습 기록을 저장해요.</p>
+          <p>학습 기록은 이 브라우저에 저장됩니다.</p>
         </div>
       </aside>
       {menu && (
@@ -420,7 +482,7 @@ export default function App() {
       />
       <div className="workspace">
         <header className="topbar">
-          <div>
+          <div className="topbar-brand">
             <button
               className="icon-button mobile-menu"
               aria-label="메뉴 열기"
@@ -428,28 +490,37 @@ export default function App() {
             >
               <Menu />
             </button>
-            <span>
+            <button className="brand" onClick={() => goHome()}>
+              <span className="brand-mark">
+                <BookOpen size={27} />
+              </span>
+              <span className="official-title">
+                TOPCIT 학습 시뮬레이션
+                <small>STUDY LAB · 비공식 학습 도구</small>
+              </span>
+            </button>
+          </div>
+          <div className="topbar-center">
+            <Clock size={25} />
+            <span
+              className={`timer ${view === "session" && active?.mode === "exam" && remaining < 300 ? "urgent" : ""}`}
+            >
+              {view === "session" && active?.mode === "exam" && !active.endedAt
+                ? `${pad(Math.floor(remaining / 60))}:${pad(remaining % 60)} / 150:00`
+                : active?.endedAt && view === "session"
+                  ? "제출 완료"
+                  : "시간 제한 없음"}
+            </span>
+            <span className="mode-label">
               {view === "home"
-                ? "나의 학습실"
+                ? "회차 선택"
                 : active?.round === 0
                   ? "공식 문항 복습"
                   : `${active?.round ? `${pad(active.round)}회차 · ` : ""}${active ? modeLabels[active.mode] : ""}`}
             </span>
           </div>
           <div className="topbar-right">
-            {view === "session" &&
-            active?.mode === "exam" &&
-            !active.endedAt ? (
-              <span className={`timer ${remaining < 300 ? "urgent" : ""}`}>
-                <Clock size={16} />
-                {pad(Math.floor(remaining / 60))}:{pad(remaining % 60)}
-              </span>
-            ) : (
-              <>
-                <span className="status-dot" /> 나만의 속도로, 꾸준히
-              </>
-            )}
-            <span className="avatar">S</span>
+            <span>문항별 정답·해설 학습</span>
           </div>
         </header>
         {!ready ? (
@@ -465,46 +536,26 @@ export default function App() {
               </div>
             )}
             {view === "home" ? (
-              <main className="home-content">
-                <div className="eyebrow">A LITTLE BETTER, EVERY DAY</div>
-                <div className="page-heading">
-                  <div>
-                    <h1>
-                      {section === "rounds" ? (
-                        <>
-                          이해하며 쌓는,
-                          <br />
-                          나의 TOPCIT.
-                        </>
-                      ) : section === "random" ? (
-                        "개념을 연결하는 랜덤 연습"
-                      ) : section === "review" ? (
-                        "다시 만나면, 내 것이 되도록."
-                      ) : (
-                        "작은 이해가 쌓이고 있어요."
-                      )}
-                    </h1>
-                    <p>
-                      {section === "rounds"
-                        ? "실전 형식으로 풀고, 자세한 해설로 이해하세요. 오늘도 한 문제부터."
-                        : section === "random"
-                          ? "영역과 개념을 골라 여러 회차의 문제를 섞어 풀어보세요."
-                          : section === "review"
-                            ? "놓친 개념과 다시 보고 싶은 문제를 한 곳에서 확인하세요."
-                            : "문항별 최근 확인 결과를 기준으로 나의 학습 흐름을 살펴보세요."}
-                    </p>
-                  </div>
-                  <div className="hero-art" aria-hidden="true">
-                    <div className="orbit orbit-one" />
-                    <div className="orbit orbit-two" />
-                    <div className="art-square">
-                      a<span>→</span>b
-                    </div>
-                    <div className="art-chip">
-                      <Check size={16} /> 한 걸음 더 이해하기
-                    </div>
-                    <div className="art-dot" />
-                  </div>
+              <main className="home-content home-page">
+                <div className="home-intro">
+                  <h1>
+                    {section === "rounds"
+                      ? "모의응시 · 회차 선택"
+                      : section === "random"
+                        ? "랜덤 연습"
+                        : section === "review"
+                          ? "오답 · 북마크"
+                          : "학습 기록"}
+                  </h1>
+                  <p>
+                    {section === "rounds"
+                      ? "회차를 선택하여 학습하거나 제한 시간 안에 모의시험을 응시할 수 있습니다."
+                      : section === "random"
+                        ? "영역과 개념을 선택해 여러 회차의 문제를 섞어 연습합니다."
+                        : section === "review"
+                          ? "틀린 문항과 검토할 문항을 모아서 다시 풀이합니다."
+                          : "문항별 최근 확인 결과와 학습 이력을 확인합니다."}
+                  </p>
                 </div>
                 <div className="stats-strip">
                   <div>
@@ -581,8 +632,8 @@ export default function App() {
                                 </span>
                                 <span className="round-type">
                                   {round === 1
-                                    ? "REFERENCE BASED"
-                                    : "ORIGINAL PRACTICE"}
+                                    ? "참고자료 기반"
+                                    : "창작 예상문제"}
                                 </span>
                                 {completed === 75 && <CheckCircleIcon />}
                               </div>
@@ -611,7 +662,7 @@ export default function App() {
                                 <small>
                                   {completed
                                     ? `${completed} / 75문항 확인`
-                                    : "아직 시작하지 않았어요"}
+                                    : "미응시"}
                                 </small>
                                 <div>
                                   <button
@@ -881,30 +932,11 @@ export default function App() {
             ) : active && q ? (
               <main className="session-content">
                 <div className="session-heading">
-                  <div>
-                    <span className="eyebrow">
-                      {active.mode === "exam"
-                        ? "PRACTICE EXAM"
-                        : "LEARN WITH UNDERSTANDING"}
-                    </span>
-                    <h1>
-                      {q.round === 0 ? "공식 문항 복습" : `${q.round}회차`}{" "}
-                      <span>
-                        {domains.find((d) => d.id === q.domain)?.label}
-                      </span>
-                    </h1>
-                  </div>
-                  <button
-                    className="secondary"
-                    onClick={() => setConfirmFinish(true)}
-                  >
-                    {active.endedAt ? "결과 보기" : "학습 마치기"}
-                  </button>
-                </div>
-                <div className="session-progress">
-                  <span
-                    style={{ width: `${(done / active.ids.length) * 100}%` }}
-                  />
+                  <h1>문제 풀이 영역</h1>
+                  <span>
+                    {q.round === 0 ? "공식 문항 복습" : `${q.round}회차`} ·{" "}
+                    {domains.find((d) => d.id === q.domain)?.label}
+                  </span>
                 </div>
                 {active.endedAt && sessionScore && (
                   <div className="session-summary">
@@ -926,32 +958,38 @@ export default function App() {
                     </span>
                   </div>
                 )}
-                <article className="question-card">
-                  <div className="question-topline">
-                    <div>
-                      <span className="question-index">
-                        Q{pad(active.index + 1)}
+                <ResizablePanes resetKey={q.id} top={
+                  <div className="question-header">
+                    <div className="question-number-panel">
+                      <strong>{active.index + 1}</strong>
+                      <span>
+                        {kindLabels[q.kind]}
+                        <br />
+                        {q.points}점
                       </span>
-                      <span className="pill">{kindLabels[q.kind]}</span>
-                      <span className="question-points">{q.points}점</span>
+                      <label className="review-check">
+                        <input
+                          type="checkbox"
+                          checked={state.bookmarks.includes(q.id)}
+                          onChange={() => bookmark(q.id)}
+                        />
+                        검토하기
+                      </label>
                     </div>
-                    <button
-                      className={`bookmark-button ${state.bookmarks.includes(q.id) ? "saved" : ""}`}
-                      aria-pressed={state.bookmarks.includes(q.id)}
-                      onClick={() => bookmark(q.id)}
-                    >
-                      <Bookmark size={17} />
-                      {state.bookmarks.includes(q.id) ? "저장됨" : "북마크"}
-                    </button>
-                  </div>
-                  <div className="question-body">
-                    <h2>{q.title}</h2>
-                    <RichText text={q.prompt} />
-                    {q.stimulus && (
-                      <div className="stimulus">
-                        <RichText text={q.stimulus} />
+                    <div className="question-heading">
+                      <h2>{q.title}</h2>
+                      <div className="question-prompt">
+                        <RichText text={q.prompt} />
                       </div>
-                    )}
+                      {q.stimulus && (
+                        <div className="stimulus">
+                          <RichText text={q.stimulus} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  }>
+                  <div className="answer-section">
                     <QuestionPanel
                       key={`${active.id}-${q.id}`}
                       question={q}
@@ -961,33 +999,39 @@ export default function App() {
                       ended={Boolean(active.endedAt)}
                     />
                   </div>
-                </article>
-                <div className="question-navigation">
-                  <button
-                    className="secondary"
-                    disabled={active.index === 0}
-                    onClick={() => navigate(active.index - 1)}
-                  >
-                    <ArrowLeft size={16} /> 이전 문제
-                  </button>
-                  <span>
-                    {active.index + 1} / {active.ids.length}
+                </ResizablePanes>
+                <div className="question-nav">
+                  <span className="nav-question-count">
+                    {active.index + 1} / {active.ids.length} 문항
                   </span>
-                  {active.index < active.ids.length - 1 ? (
+                  <div className="question-nav-actions">
                     <button
                       className="primary"
+                      disabled={active.index === 0}
+                      onClick={() => navigate(active.index - 1)}
+                    >
+                      <ArrowLeft size={18} />
+                      이전 문제
+                    </button>
+                    <button
+                      className="primary"
+                      disabled={active.index === active.ids.length - 1}
                       onClick={() => navigate(active.index + 1)}
                     >
-                      다음 문제 <ArrowRight size={16} />
+                      다음 문제
+                      <ArrowRight size={18} />
                     </button>
-                  ) : (
                     <button
-                      className="primary"
+                      className="finish-button"
                       onClick={() => setConfirmFinish(true)}
                     >
-                      결과 확인 <Check size={16} />
+                      {active.endedAt
+                        ? "결과 보기"
+                        : active.mode === "exam"
+                          ? "평가 종료"
+                          : "학습 마치기"}
                     </button>
-                  )}
+                  </div>
                 </div>
                 <div className="question-footnote">
                   {q.round === 0
@@ -995,7 +1039,7 @@ export default function App() {
                     : q.origin === "reference-adapted"
                       ? "제공된 참고자료를 바탕으로 구성한 학습 문항"
                       : "교재 개념에 기반한 창작 예상문제"}{" "}
-                  · 정답 확인 후 해설과 출처를 볼 수 있어요.
+                  · 정답 확인 후 해설과 출처를 볼 수 있습니다.
                 </div>
               </main>
             ) : (
@@ -1164,8 +1208,8 @@ function OfficialCard({ start, count }: { start: () => void; count: number }) {
         <ExternalLink size={24} />
       </div>
       <div>
-        <span className="section-kicker">OFFICIAL SIMULATION</span>
-        <h3>공식 문제도, 따로 연습하세요.</h3>
+        <span className="section-kicker">공식 시뮬레이션</span>
+        <h3>공식 시뮬레이션 · 제공 문항 해설 학습</h3>
         <p>
           공식 사이트 원본 실행과 제공된 공식 문항의 해설 학습을 구분합니다.
           <br />
