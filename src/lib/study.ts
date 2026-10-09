@@ -41,6 +41,29 @@ export const emptyState = (): StudyState => ({
   bookmarks: [],
   sessions: [],
 });
+export function expandPublicStudySessions(
+  state: StudyState,
+  publicIds: string[],
+): StudyState {
+  const sessions = state.sessions.map((session) => {
+    if (
+      session.round !== 0 ||
+      session.mode !== "study" ||
+      session.endedAt !== undefined ||
+      session.ids.length >= publicIds.length ||
+      !session.ids.every((id) => publicIds.includes(id))
+    )
+      return session;
+    return {
+      ...session,
+      ids: [...publicIds],
+      index: publicIds.indexOf(session.ids[session.index]),
+    };
+  });
+  return sessions.some((session, i) => session !== state.sessions[i])
+    ? { ...state, sessions }
+    : state;
+}
 export function normalize(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
 }
