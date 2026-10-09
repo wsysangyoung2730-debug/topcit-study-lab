@@ -239,6 +239,9 @@
   overflow: auto;
   padding: 10px;
 }
+.concept-scroll-hint {
+  display: none;
+}
 .concept-visual svg {
   width: 100%;
   min-width: 640px;
@@ -290,5 +293,10 @@
   }
   .concept-visual-scroll {
     scrollbar-width: auto;
+  }
+  .concept-scroll-hint {
+    display: block;
+    margin: 8px 16px;
+    color: #61748c;
   }
 }

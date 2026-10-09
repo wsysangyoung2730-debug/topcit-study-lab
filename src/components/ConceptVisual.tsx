@@ -642,6 +642,7 @@ export function ConceptVisual({ lessonId }: { lessonId: string }) {
           {visual.draw()}
         </svg>
       </div>
+      <small className="concept-scroll-hint">그림은 좌우로 이동해서 볼 수 있어요.</small>
       <figcaption>{visual.caption}</figcaption>
     </figure>
   );
