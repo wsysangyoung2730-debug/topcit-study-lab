@@ -106,17 +106,21 @@ function QuestionInput({
     );
   if (q.kind === "diagram")
     return (
-      <DiagramEditor
-        value={a.diagram ?? { nodes: [], edges: [] }}
-        onChange={(diagram) => onChange({ ...a, diagram })}
-        disabled={locked}
-      />
+      <>
+        <h3 className="answer-heading">답안 작성</h3>
+        <DiagramEditor
+          value={a.diagram ?? { nodes: [], edges: [] }}
+          onChange={(diagram) => onChange({ ...a, diagram })}
+          disabled={locked}
+        />
+      </>
     );
   return (
     <div className="answer-field">
+      <h3 className="answer-heading">답안 작성</h3>
       <div className="answer-label">
         <label htmlFor={`answer-${q.id}`}>
-          {q.kind === "code" ? `${q.language ?? "코드"} 답안` : "나의 답안"}
+          {q.kind === "code" ? `${q.language ?? "코드"} 답안` : "답안"}
         </label>
         <span>{a.value.length}자</span>
       </div>
@@ -126,7 +130,7 @@ function QuestionInput({
           value={a.value}
           disabled={locked}
           onChange={(e) => onChange({ ...a, value: e.target.value })}
-          placeholder="답을 입력하세요"
+          placeholder="답안을 입력하세요."
         />
       ) : (
         <textarea
@@ -139,8 +143,8 @@ function QuestionInput({
           placeholder={
             q.kind === "code"
               ? (q.starterCode ??
-                "코드를 작성하세요. 실행 대신 모범답안과 비교합니다.")
-              : "핵심 개념과 그 이유를 자신의 말로 적어보세요."
+                "코드를 작성하세요. 코드는 실행되지 않으며 모범답안과 비교하여 평가합니다.")
+              : "답안과 근거를 작성하세요."
           }
           spellCheck={false}
         />
@@ -159,7 +163,7 @@ function Explanation({
 }) {
   const auto = a.correct !== undefined;
   return (
-    <section className="explanation" aria-label="정답과 해설">
+    <section className="explanation" aria-label="정답 및 해설">
       <div
         className={`result-banner ${a.correct === false ? "incorrect" : ""}`}
       >
@@ -168,13 +172,13 @@ function Explanation({
           <strong>
             {auto
               ? a.correct
-                ? "정답입니다. 잘 이해했어요!"
-                : "괜찮아요. 지금 개념을 정리해봐요."
-              : "모범답안과 비교하며 확인해보세요."}
+                ? "정답입니다."
+                : "오답입니다."
+              : "모범답안과 비교하여 평가하세요."}
           </strong>
           <p>
             {q.kind === "choice"
-              ? `내 답: ${q.options?.find((o) => o.id === a.submittedValue)?.text ?? "미응답"} · 정답: ${q.options?.find((o) => o.id === q.answer)?.text}`
+              ? `제출 답안: ${q.options?.find((o) => o.id === a.submittedValue)?.text ?? "미응답"} · 정답: ${q.options?.find((o) => o.id === q.answer)?.text}`
               : auto
                 ? `정답: ${q.modelAnswer ?? q.acceptedAnswers?.[0] ?? q.answer}`
                 : "자유 형식 답안은 아래 기준으로 직접 평가합니다."}
@@ -182,11 +186,11 @@ function Explanation({
         </div>
       </div>
       <div className="explanation-body">
-        <div className="section-kicker">WHY THIS ANSWER</div>
-        <h3>풀이를 이해해요</h3>
+        <div className="section-kicker">정답 및 해설</div>
+        <h3>해설</h3>
         {a.checks > 1 && (
           <p>
-            이번 학습에서 {a.checks}번째 확인입니다. 첫 확인:{" "}
+            확인 횟수: {a.checks}회 · 최초 결과:{" "}
             {a.history?.[0]?.correct === undefined
               ? "직접 평가"
               : a.history[0].correct
@@ -209,13 +213,13 @@ function Explanation({
         )}
         {q.modelDiagram && (
           <>
-            <h4>예시 답안 그림</h4>
+            <h4>예시 도식</h4>
             <DiagramView value={q.modelDiagram} />
           </>
         )}
         {q.options && (
           <>
-            <h4>다른 보기도 함께 알아두세요</h4>
+            <h4>보기별 해설</h4>
             <div className="option-explanations">
               {q.options.map((o, i) => (
                 <div key={o.id}>
@@ -238,7 +242,7 @@ function Explanation({
         {q.rubric?.length && (
           <div className="rubric">
             <h4>
-              나의 답안 체크리스트 <span>자기 평가</span>
+              평가 기준 <span>자기 평가</span>
             </h4>
             {q.rubric.map((r, i) => (
               <label key={i}>
@@ -264,7 +268,7 @@ function Explanation({
           <div className="takeaway">
             <Lightbulb size={20} />
             <div>
-              <strong>가져갈 개념</strong>
+              <strong>핵심 개념</strong>
               <ul>
                 {q.keyPoints.map((k) => (
                   <li key={k}>{k}</li>
@@ -275,7 +279,7 @@ function Explanation({
         )}
         {"sources" in q && (
           <details className="source-details">
-            <summary>학습 근거와 출처</summary>
+            <summary>학습 근거 및 출처</summary>
             {q.sources.map((s, i) => (
               <p key={i}>
                 <strong>{s.title}</strong>
@@ -363,7 +367,7 @@ export function QuestionPanel({
                   onClick={() => change(grade(p, pa))}
                   disabled={!hasAnswer(pa)}
                 >
-                  이 문제 정답 확인 <Check size={17} />
+                  정답 확인 <Check size={17} />
                 </button>
               ) : !exam ? (
                 <button
@@ -384,7 +388,7 @@ export function QuestionPanel({
               <>
                 <Explanation q={p} a={pa} onChange={change} />
                 <details className="source-details">
-                  <summary>통합 문제의 학습 근거</summary>
+                  <summary>통합 문항 해설 및 출처</summary>
                   {a.checked && <RichText text={q.explanation} />}
                   {q.sources.map((source, i) => (
                     <p key={i}>
@@ -421,7 +425,11 @@ export function QuestionPanel({
           <div className="check-row">
             {!a.checked ? (
               <>
-                <span>스스로 생각한 뒤 확인해보세요.</span>
+                <span>
+                  {q.kind === "choice"
+                    ? "보기를 선택한 후 정답을 확인하세요."
+                    : "답안 작성 후 정답을 확인하세요."}
+                </span>
                 <button
                   className="primary"
                   onClick={() => onChange(grade(q, a))}
