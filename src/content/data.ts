@@ -20,3 +20,87 @@ const concepts:Concept[]=[
 ];
 const keys=['a','b','c','d'];
 const multiple:Question[]=Array.from({length:10},(_,r)=>concepts.map((g,i)=>{const [prompt,correct,why]=g.cases[r];const shift=(r+i)%4;const order=[0,1,2,3].map(n=>(n+shift)%4);return {id:`data-r${r+1}-${i+1}`,round:r+1,domain:'data' as const,kind:'choice' as const,points:5,difficulty:r<3?'기초' as const:'응용' as const,topic:g.topic,title:`${g.topic} 상황 판단`,prompt,options:order.map((n,j)=>({id:keys[j],text:g.terms[n],explanation:`${g.definitions[n]} ${n===correct?why:`이 사례는 ${g.terms[correct]}에 해당하며, ${g.terms[n]}의 조건과 구별해야 한다.`}`})),answer:keys[order.indexOf(correct)],explanation:why,keyPoints:[g.definitions[correct],`비교 개념: ${g.terms.filter((_,n)=>n!==correct).join(' · ')}`],sources:source(g.chapter,g.pages),origin:r===0?'reference-adapted' as const:'original' as const};})).flat();
+
+const written: Question[] = [];
+function task(round:number,n:number,kind:'essay'|'code'|'diagram',title:string,prompt:string,modelAnswer:string,criteria:string[],extra:Partial<Question>={}) {
+ const points=kind==='essay'?30:50;
+ const weights=kind==='essay'?[10,10,10]:[20,20,10];
+ const q:Question={id:`data-r${round}-${n}`,round,domain:'data',kind,points,difficulty:round<4?'응용':'심화',topic:title,title,prompt,modelAnswer,explanation:modelAnswer,keyPoints:criteria,rubric:criteria.map((label,i)=>({label,points:weights[i]})),sources:source('데이터 모델링·SQL·데이터 활용'),origin:round===1?'reference-adapted':'original',...extra}; written.push(q); return q;
+}
+const essays: [string,string,string,string[]][][] = [
+ [
+ ['데이터베이스 스키마','외부·개념·내부 스키마를 설명하고, 저장 장치 변경이 응용 프로그램 수정으로 이어지지 않는 성질을 설명하시오.','외부 스키마는 사용자별 뷰, 개념 스키마는 조직 전체의 논리 구조, 내부 스키마는 물리적 저장 구조다. 물리적 데이터 독립성은 내부 스키마 변경을 개념 스키마와 응용 프로그램으로부터 분리한다.',['세 스키마 역할 구분','물리적 데이터 독립성 설명','저장 구조와 논리 구조 연결 설명']],
+ ['분산 데이터 분할','고객(고객ID, 지역, 이름, 주소)을 지역별로 나누는 방식과 고객ID를 공통으로 두고 이름·주소를 별도 관계로 나누는 방식을 비교하시오.','지역별 행 분리는 수평 분할이며 합집합으로 복원한다. 속성별 분리는 수직 분할이며 공통 키인 고객ID를 이용한 조인으로 복원한다. 원본을 정보 손실 없이 재구성할 수 있어야 한다.',['수평 분할과 합집합','수직 분할과 키 조인','무손실 재구성 조건']]
+ ],
+ [
+ ['함수 종속과 이상','수강(학번, 과목코드, 학생명, 과목명, 성적)의 키가 {학번, 과목코드}이다. 학생명과 과목명을 분리해야 하는 이유와 분해 결과를 쓰시오.','학번→학생명, 과목코드→과목명의 부분 종속이 존재한다. 학생명 수정 시 여러 행을 바꾸는 갱신 이상 등이 발생한다. 학생(학번,학생명), 과목(과목코드,과목명), 수강(학번,과목코드,성적)으로 분해한다.',['두 부분 종속 식별','갱신 등 이상 설명','학생·과목·수강 분해']],
+ ['NULL과 집계','매출 테이블 금액이 100, NULL, 200일 때 COUNT(*), COUNT(금액), AVG(금액)의 결과와 이유를 쓰시오.','COUNT(*)는 모든 행을 세어 3이다. COUNT(금액)은 NULL을 제외해 2다. AVG(금액)은 알려진 값의 합 300을 2로 나눠 150이다. NULL을 0으로 처리하는 요구라면 COALESCE 등을 명시해야 한다.',['COUNT(*)=3','COUNT(금액)=2','AVG=150 및 NULL 제외']]
+ ],
+ [
+ ['트랜잭션과 장애','계좌 A에서 100을 빼고 B에 100을 더한다. 두 번째 갱신에서 오류가 났을 때 필요한 ACID 속성과 처리 방법을 설명하시오.','원자성은 두 갱신을 전부 적용하거나 전부 취소하게 한다. 하나의 트랜잭션으로 묶고 실패 시 ROLLBACK해 A의 차감도 되돌린다. 성공 시 COMMIT하며 총액 보존이라는 업무 일관성을 지킨다.',['원자성 설명','실패 시 전체 롤백','커밋 및 총액 일관성']],
+ ['동시성 이상','T1이 잔액 100을 읽고, T2가 100을 읽었다. T1은 110을 저장하고 T2는 120을 저장했다. 두 증가량 10과 20이 모두 반영되지 않는 이유와 방지책을 설명하시오.','최종 120이 되어 T1의 증가 10이 손실되는 갱신 분실이다. SELECT FOR UPDATE 같은 잠금, 버전 컬럼을 통한 낙관적 충돌 검출 후 재시도, 또는 잔액=잔액+증가량 원자적 갱신을 사용할 수 있다.',['갱신 분실과 최종값','동시 읽기 후 덮어쓰기 원인','잠금·버전 등 적합한 방지책']]
+ ],
+ [
+ ['인덱스 설계','주문에서 고객ID 동등 조건과 주문일 범위 조건으로 조회한다. 복합 B-tree 인덱스 후보와 읽기·쓰기의 상충 관계를 설명하시오.','(고객ID, 주문일)을 후보로 삼아 동등 조건 뒤 범위를 탐색한다. 실제 선택도와 실행계획으로 확인한다. 인덱스는 조회를 줄이지만 저장 공간과 INSERT/UPDATE/DELETE의 유지 비용이 늘어난다.',['복합 인덱스 순서','선택도·실행계획 검증','저장·쓰기 비용']],
+ ['실행 계획 검토','전체 행의 90%를 반환하는 쿼리에 인덱스가 있는데도 전체 스캔을 사용했다. 오류라고 단정할 수 없는 이유를 설명하시오.','반환 비율이 높으면 인덱스를 읽고 테이블을 반복 방문하는 비용보다 연속 전체 스캔 비용이 낮을 수 있다. 통계·데이터 분포·커버링 여부·I/O를 확인하고 실제 실행 시간과 계획을 비교한다.',['높은 반환 비율','임의 접근과 연속 접근 비용','통계 및 실제 계획 검증']]
+ ],
+ [
+ ['복구 전략','최근 전체 백업은 일요일, 장애는 수요일이다. 월~수 변경 로그가 보존되어 있다. 데이터 복구 순서와 RPO를 줄이는 방법을 설명하시오.','전체 백업을 복원하고 이후 커밋된 변경을 로그로 순서대로 재적용한다. 미완료 트랜잭션은 복구 정책에 따라 UNDO한다. 더 빈번한 로그 보존·전송은 허용 데이터 손실 구간인 RPO를 줄인다.',['백업 복원 후 로그 재적용','미완료 작업 처리','RPO와 로그 주기']],
+ ['복제와 백업','운영 DB의 오삭제가 복제 서버에도 반영되었다. 복제만으로 백업을 대체하기 어려운 이유와 대안을 쓰시오.','복제는 같은 변경을 다른 노드에 적용하므로 잘못된 변경도 전파될 수 있다. 백업은 과거 시점의 상태를 보존한다. 버전 보존 백업과 로그 기반 시점 복구를 운영하고 복구 훈련으로 유효성을 확인한다.',['오삭제 전파 설명','과거 시점 보존 차이','시점 복구 및 복구 훈련']]
+ ],
+ [
+ ['연관 규칙 평가','거래 100건 중 빵 40건, 우유 50건, 둘 다 30건이다. 빵→우유의 지지도·신뢰도·향상도를 계산하고 해석하시오.','지지도=30/100=0.30, 신뢰도=30/40=0.75, 향상도=0.75/0.50=1.5다. 빵 구매 조건에서 우유 구매 비율이 전체 우유 구매 비율의 1.5배다. 인과관계를 증명하는 값은 아니다.',['지지도 0.30','신뢰도 0.75','향상도 1.5 및 해석']],
+ ['데이터 누수','모델 평가 전에 전체 데이터의 평균으로 결측값을 채우고 학습·평가 데이터를 나눴다. 문제와 수정 절차를 쓰시오.','평가 데이터의 분포 정보가 전처리에 사용되어 학습 과정으로 유입되는 데이터 누수다. 먼저 분리한 뒤 학습 데이터에서 대체값을 추정하고 같은 규칙을 평가 데이터에 적용한다. 교차 검증에서도 각 학습 폴드 안에서 전처리를 적합한다.',['평가 정보 유입 식별','분할 후 학습 데이터로 전처리 적합','평가 및 교차 검증 적용']]
+ ],
+ [
+ ['NoSQL 선택','사용자 프로필의 속성이 자주 바뀌고 프로필 전체를 함께 읽는다. 문서 DB를 고려하는 이유와 관계형 DB와의 차이를 설명하시오.','관련 필드를 문서에 묶고 문서별 유연한 구조를 허용할 수 있다. 관계형 테이블의 정형 구조·조인 중심 모델과 다르다. 스키마 유연성은 검증 불필요를 뜻하지 않으며 중복 데이터·원자성 범위·조회 패턴을 검토한다.',['문서 단위와 구조 유연성','관계형 구조·조인과 비교','검증·중복·원자성 고려']],
+ ['샤딩 키','주문을 국가 코드로 샤딩했더니 한 국가 트래픽이 80%를 차지했다. 문제와 개선 방향을 설명하시오.','특정 샤드에 부하가 집중되는 핫스팟이다. 주문ID나 고객ID의 해시 등 더 균등한 키, 큰 지역의 추가 분할을 검토한다. 균등 분포뿐 아니라 같은 고객 조회의 지역성과 샤드 간 조인·트랜잭션 비용도 고려한다.',['핫스팟 원인','균등 분배 가능한 키·재분할','조회 지역성과 분산 비용']]
+ ],
+ [
+ ['DW와 OLAP','판매 사실 테이블과 날짜·상품·지역 차원이 있다. 스타 스키마와 월별→연도별 집계, 연도별→월별 상세화 연산을 설명하시오.','스타 스키마는 중심 사실 테이블에 측정값과 차원 키를 두고 주변 차원에 분석 관점을 둔다. 월→연도는 상위 수준으로 집계하는 roll-up, 연도→월은 상세 수준으로 내려가는 drill-down이다.',['사실과 차원 구분','roll-up 방향','drill-down 방향']],
+ ['ETL 품질 관리','고객 통합 중 중복 ID, 필수 이메일 누락, 날짜 형식 혼재가 발견되었다. 세 품질 문제와 처리 방안을 쓰시오.','중복은 유일성 문제로 기준 키와 매칭 규칙으로 통합한다. 필수값 누락은 완전성 문제로 격리·보완한다. 날짜 형식 혼재는 표준 형식으로 변환하되 실패 행은 오류 영역에 보관한다. 변환 이력과 원본을 추적 가능하게 남긴다.',['중복과 유일성','누락과 완전성','형식 표준화 및 오류 이력']]
+ ],
+ [
+ ['스트림 처리','이벤트 생성 시각과 서버 도착 시각이 다르고 일부 데이터가 늦게 도착한다. 이벤트 시간 기반 집계에서 워터마크와 지연 허용이 필요한 이유를 설명하시오.','이벤트 시간은 실제 발생 시각이고 처리 시간은 시스템이 처리한 시각이다. 워터마크는 이벤트 시간 진행에 대한 추정 경계다. 허용 지연 내 늦은 이벤트는 집계 갱신으로 처리하고 경계를 넘은 데이터는 별도 보정 정책을 둔다.',['이벤트·처리 시간 차이','워터마크의 진행 경계','지연 데이터 갱신·보정 정책']],
+ ['멱등성과 중복','메시지 처리 후 응답이 유실되어 같은 결제 이벤트가 재전달되었다. 중복 차감을 방지하는 설계를 쓰시오.','이벤트 고유 ID를 저장하고 유일성 제약으로 이미 처리한 이벤트를 판별한다. 처리 여부 기록과 차감은 하나의 트랜잭션으로 원자적으로 묶는다. 동일 이벤트를 다시 받아도 결과가 중복 적용되지 않는 멱등성을 확보한다.',['고유 ID와 중복 검출','차감·처리 기록의 원자성','재실행 시 동일 효과']]
+ ],
+ [
+ ['모델 평가 지표','실제 양성 중 TP=80, FN=20이고 FP=40이다. 정밀도와 재현율을 계산하고 미탐이 치명적인 상황에서 어떤 지표를 우선 보는지 설명하시오.','정밀도=80/(80+40)=2/3≈66.7%, 재현율=80/(80+20)=80%다. 미탐(FN)의 비용이 큰 경우 재현율을 중요하게 보되 임계값 조정에 따른 오탐과의 상충 관계를 함께 검토한다.',['정밀도 약66.7%','재현율80%','미탐·오탐 상충 관계']],
+ ['데이터 계보와 변경 영향','대시보드 지표가 틀렸는데 원천 컬럼 정의가 바뀐 것이 원인이었다. 계보 관리로 어떤 경로를 추적하고 재발을 방지할지 설명하시오.','원천 컬럼→수집 작업→변환 SQL→집계 테이블→대시보드 의존 경로를 추적한다. 컬럼의 의미·단위·변경 버전을 메타데이터로 관리하고 변경 전 영향 분석과 데이터 계약·회귀 검증을 수행한다.',['원천부터 지표까지 의존 경로','메타데이터 정의·버전','영향 분석·계약 검증']]
+ ]
+];
+essays.forEach((pair,r)=>pair.forEach((e,i)=>task(r+1,16+i,'essay',...e)));
+const performances: [string,string,string,string[]][] = [
+ ['관계형 테이블 생성','부서(dept_id 기본키, dept_name 필수), 직원(emp_id 기본키, emp_name 필수, dept_id 필수 외래키) 테이블을 SQL로 작성하시오. ID는 정수, 이름은 VARCHAR(100)이다. 부서를 먼저 생성한다.',`CREATE TABLE Department (\n dept_id INTEGER PRIMARY KEY,\n dept_name VARCHAR(100) NOT NULL\n);\nCREATE TABLE Employee (\n emp_id INTEGER PRIMARY KEY,\n emp_name VARCHAR(100) NOT NULL,\n dept_id INTEGER NOT NULL REFERENCES Department(dept_id)\n);`,['기본키와 자료형','직원 외래키','필수 속성의 NOT NULL']],
+ ['미주문 고객 조회','Customer(id,name), Orders(id,customer_id)가 있다. 주문이 한 건도 없는 고객의 id,name을 조회하는 SQL을 작성하시오.',`SELECT c.id, c.name\nFROM Customer c\nWHERE NOT EXISTS (\n SELECT 1 FROM Orders o WHERE o.customer_id = c.id\n);`,['전체 고객에서 검사','상관 조건과 NOT EXISTS','id,name 출력; LEFT JOIN 대안 인정']],
+ ['조건부 집계','Orders(customer_id, amount, status)에서 status가 PAID인 주문만 합산하여 합계가 100000 이상인 고객ID와 total을 내림차순 조회하시오.',`SELECT customer_id, SUM(amount) AS total\nFROM Orders\nWHERE status = 'PAID'\nGROUP BY customer_id\nHAVING SUM(amount) >= 100000\nORDER BY total DESC;`,['WHERE 및 GROUP BY','SUM·HAVING 조건','별칭·내림차순']],
+ ['부서별 순위','Employee(id,dept_id,salary)의 부서별 급여 순위를 구하시오. 같은 급여는 같은 순위이며 다음 순위가 건너뛰지 않아야 한다. id,dept_id,salary,rnk를 출력한다.',`SELECT id, dept_id, salary,\n DENSE_RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS rnk\nFROM Employee;`,['DENSE_RANK 선택','부서별 PARTITION BY','급여 DESC 및 출력 컬럼']],
+ ['조건부 재고 차감','Stock(product_id,quantity)에서 상품 10의 재고가 3 이상일 때만 3을 차감하는 한 개 UPDATE문을 쓰시오. 영향 행 수가 0일 때의 처리도 설명하시오.',`UPDATE Stock\nSET quantity = quantity - 3\nWHERE product_id = 10 AND quantity >= 3;\n-- 영향 행 수 0: 해당 상품이 없거나 재고가 부족함. 주문을 확정하지 않는다.`,['한 문장 조건부 UPDATE','상품 조건과 재고 조건','영향 행 수로 실패 판별']],
+ ['데이터 정제 코드','Python에서 rows=[{"id":1,"amount":10},{"id":2,"amount":None},{"id":1,"amount":10}]를 처리한다. id 중복은 첫 행만 유지하고 None 금액은 0으로 바꾼 새 리스트를 만드시오. 입력을 변경하지 않는다.',`seen = set()\nresult = []\nfor row in rows:\n    if row['id'] in seen:\n        continue\n    seen.add(row['id'])\n    item = dict(row)\n    if item['amount'] is None:\n        item['amount'] = 0\n    result.append(item)`,['첫 ID 유지하는 중복 제거','None만 0으로 변환','복사하여 원본 보존']],
+ ['관계 차집합','Registered(student_id,course_id)와 Completed(student_id,course_id)가 있다. 등록했지만 이수하지 않은 학생·과목 조합을 NOT EXISTS로 조회하시오.',`SELECT r.student_id, r.course_id\nFROM Registered r\nWHERE NOT EXISTS (\n SELECT 1 FROM Completed c\n WHERE c.student_id = r.student_id\n   AND c.course_id = r.course_id\n);`,['NOT EXISTS 구조','두 속성 모두 상관 비교','등록 집합의 컬럼 출력']],
+ ['판매 분석 집계','Sales(sold_at,region,amount)에서 2025년 판매만 지역별로 합산하시오. sold_at은 timestamp이며 2026-01-01은 포함하지 않는다.',`SELECT region, SUM(amount) AS total\nFROM Sales\nWHERE sold_at >= '2025-01-01'\n  AND sold_at < '2026-01-01'\nGROUP BY region;`,['시작 이상·끝 미만 구간','지역별 GROUP BY','SUM과 결과 컬럼']],
+ ['페이지네이션','Post(id,created_at,title)를 created_at DESC,id DESC로 정렬한다. 직전 마지막 행이 시각 :t, ID :id이다. 이후 20개를 반환하는 키셋 페이지네이션 SQL을 작성하시오. LIMIT 문법을 사용한다.',`SELECT id, created_at, title\nFROM Post\nWHERE created_at < :t\n OR (created_at = :t AND id < :id)\nORDER BY created_at DESC, id DESC\nLIMIT 20;`,['시각보다 작은 행','동일 시각의 ID 타이브레이커','동일 정렬 기준 및 LIMIT']],
+ ['최신 상태 조회','History(entity_id,changed_at,event_id,status)에서 개체별 최신 행 하나만 조회한다. 시각이 같으면 큰 event_id가 최신이다. 윈도 함수와 CTE로 작성하시오.',`WITH ranked AS (\n SELECT entity_id, status, changed_at, event_id,\n ROW_NUMBER() OVER (PARTITION BY entity_id ORDER BY changed_at DESC, event_id DESC) AS rn\n FROM History\n)\nSELECT entity_id, status, changed_at, event_id\nFROM ranked WHERE rn = 1;`,['ROW_NUMBER 및 개체별 분할','두 단계 내림차순 정렬','CTE 결과에서 rn=1']]
+];
+performances.forEach((p,r)=>task(r+1,18,'code',...p,{language:r===5?'Python':'SQL',starterCode:r===5?'# 처리 코드를 작성하세요':'-- SQL을 작성하세요'}));
+const integrated: [string,string,string,string,string,string,string,string][] = [
+ ['주문 데이터 설계','주문(주문ID,고객ID,고객명,상품ID,상품명,수량). 키는 {주문ID,상품ID}, 주문ID→고객ID, 고객ID→고객명, 상품ID→상품명이다.','부분 종속과 이행 종속을 찾아 분해하시오.','상품ID→상품명은 부분 종속이다. 주문ID→고객ID→고객명은 이행 경로다. 고객(고객ID,고객명), 상품(상품ID,상품명), 주문(주문ID,고객ID), 주문항목(주문ID,상품ID,수량)으로 분해한다.','주문항목의 키와 참조 무결성을 설명하시오.','{주문ID,상품ID}가 기본키다. 주문ID는 주문, 상품ID는 상품을 참조하는 외래키로 정의해 존재하지 않는 주문·상품의 항목을 방지한다.','주문항목 4행의 수량이 2,3,1,4다. SUM(수량)의 결과는?','10'],
+ ['배송 집계','Customer(id,name), Orders(id,customer_id,status)가 있다. status는 DONE 또는 WAIT이며 고객별 완료 주문 수를 0도 포함해 구한다.','적합한 조회 SQL을 작성하시오.',`SELECT c.id, COUNT(o.id) AS done_count\nFROM Customer c LEFT JOIN Orders o\n ON o.customer_id = c.id AND o.status = 'DONE'\nGROUP BY c.id;`,'상태 조건을 WHERE에만 넣었을 때 문제를 설명하시오.','오른쪽 Orders가 없는 행의 status는 NULL이므로 WHERE status=\'DONE\'을 통과하지 못한다. 주문이 없는 고객도 보존하려면 ON에서 조건을 적용하거나 조건부 집계를 사용한다.','A의 주문 상태가 DONE,DONE,WAIT라면 완료 주문 수는?','2'],
+ ['계좌 이체 동시성','A 잔액100, B 잔액50. A에서 B로30을 이체한다. 두 갱신을 하나의 트랜잭션으로 처리한다.','트랜잭션 경계와 오류 처리 의사 코드를 작성하시오.','BEGIN; A의 잔액 조건을 확인·잠금 또는 원자 갱신한다. A에서30차감, B에30증가, 모두 성공하면 COMMIT한다. 오류·잔액 부족이면 ROLLBACK한다.','교착 상태 예방·처리 방법을 설명하시오.','여러 계좌의 잠금을 계좌ID 순서처럼 일관된 순서로 얻어 순환 대기를 줄인다. DB가 교착을 검출해 한 트랜잭션을 중단하면 전체를 안전하게 재시도한다.','정상 커밋 뒤 A와 B 총 잔액은?','150'],
+ ['인덱스와 집계','Log(id,user_id,created_at) 1천만 행에서 한 사용자의 기간별 로그를 조회한다.','복합 인덱스 후보와 그 이유를 쓰시오.','(user_id,created_at)을 후보로 한다. 사용자 동등 조건으로 범위를 좁히고 그 내부에서 시각 범위를 탐색한다. 선택도·쿼리 패턴과 실행계획으로 검증한다.','모든 컬럼에 인덱스를 만드는 방식의 문제를 설명하시오.','디스크 사용과 삽입·삭제·갱신 유지 비용이 증가한다. 저선택도 컬럼이나 사용되지 않는 인덱스는 효과가 제한될 수 있으므로 측정 기반으로 관리한다.','조회로 고른 100행 중 조건을 만족한 행이 25행이면 비율(%)은? 숫자만 쓰시오.','25'],
+ ['장애 복구 로그','백업 시 X=10. 이후 T1은 X=15로 변경하고 커밋했다. T2는 X=20으로 변경했으나 커밋 전에 장애가 났다.','UNDO/REDO 관점에서 복구 원칙을 설명하시오.','커밋한 T1의 변경은 내구성을 위해 필요 시 REDO하고, 미커밋 T2의 변경이 저장되었다면 UNDO한다. 구체적 순서는 DB의 로그·복구 알고리즘에 따른다.','로그 선행 기록(WAL)의 목적을 설명하시오.','데이터 페이지의 변경을 디스크에 쓰기 전에 해당 로그를 안정 저장소에 기록해 장애 후 변경을 재현하거나 취소할 근거를 확보한다.','복구 완료 후 X의 값은?','15'],
+ ['장바구니 분석','거래10건 중 커피6건, 쿠키5건, 둘 다4건이다. 규칙은 커피→쿠키다.','지지도와 신뢰도의 산식과 값을 쓰시오.','지지도=4/10=0.4(40%), 신뢰도=4/6=2/3(약66.7%)이다. 지지도는 전체 거래, 신뢰도는 선행 품목 거래를 분모로 사용한다.','향상도를 계산하고 해석하시오.','향상도=(4/6)/(5/10)=4/3≈1.333이다. 커피 구매 시 쿠키 비율이 전체 쿠키 비율보다 높다. 통계적 연관이며 인과관계로 단정할 수 없다.','두 품목을 함께 포함한 거래 수는?','4'],
+ ['중복 이벤트 처리','이벤트 E1 금액100, E2 금액200, E1 금액100이 순서대로 도착했다. 이벤트ID는 거래를 유일하게 식별한다.','중복 금액 반영을 방지하는 저장 설계를 설명하시오.','처리 이벤트 테이블에 이벤트ID 유일성 제약을 두고 처음 삽입할 때만 금액을 반영한다. 같은 ID가 재전달되면 이미 처리한 결과를 사용한다.','처리 이력 저장과 잔액 변경을 따로 커밋할 때 위험을 설명하시오.','이력만 커밋하면 금액이 빠지고, 금액만 커밋하면 재시도에서 중복 적용될 수 있다. 두 처리를 한 트랜잭션으로 묶거나 동등한 원자적 설계가 필요하다.','중복 제거 후 총 금액은?','300'],
+ ['분석 데이터 품질','온라인 매출100, 매장 매출200을 통합한다. 온라인은 원, 매장은 천 원 단위인데 단위를 확인하지 않고 합산했다.','올바른 합산과 메타데이터 관리 항목을 설명하시오.','매장200천 원=200000원으로 환산하므로 합계200100원이다. 금액 단위, 통화, 기준시점, 세금 포함 여부를 메타데이터·데이터 계약으로 명시한다.','ETL 검증 방법을 제안하시오.','원천별 단위 변환 규칙을 명시하고 소규모 기준 예제로 테스트한다. 범위·합계 대사와 원천 건수 일치를 검사하고 오류 행·변환 이력을 추적한다.','정상 변환 후 총액을 원 단위 숫자로 쓰시오.','200100'],
+ ['대기열과 처리량','입력은 초당120건, 소비자1개의 처리량은 초당50건이다. 소비자는 독립적으로 분할된 메시지를 처리하며 부하는 균등하다고 가정한다.','소비자2개로 지속 운영할 때 현상을 설명하시오.','총 처리량100건/초가 입력120건/초보다 작아 적체가 초당20건 증가한다. 지연이 증가하며 버퍼 한도·역압력·확장 정책을 검토해야 한다.','병렬 소비자 수 증가 외에 검토할 운영 지표를 쓰시오.','메시지 지연·적체량, 실제 처리 시간, 실패·재시도율, 파티션 수와 편향, DB 병목을 관찰한다. 순서 보장·멱등성 조건도 유지한다.','입력률을 감당하는 소비자의 최소 정수 개수는?','3'],
+ ['분류 평가와 운영','실제 사기20건 중18건 검출, 정상80건 중8건을 사기로 경보했다.','혼동행렬 TP,FN,FP,TN을 구하고 정밀도·재현율을 계산하시오.','TP=18,FN=2,FP=8,TN=72. 정밀도=18/26≈69.23%, 재현율=18/20=90%다.','운영 중 데이터 분포가 바뀔 때 관리 방안을 설명하시오.','입력·예측 분포와 실제 라벨 기반 성능을 모니터링한다. 드리프트와 성능 저하가 확인되면 원인·라벨 품질을 점검하고 검증된 재학습·임계값 조정 및 롤백을 진행한다.','전체 정확도(%)는? 숫자만 쓰시오.','90']
+];
+integrated.forEach((x,r)=>{
+ const [title,stimulus,p1,m1,p2,m2,p3,m3]=x;
+ written.push({id:`data-r${r+1}-19`,round:r+1,domain:'data',kind:'compound',points:80,difficulty:'심화',topic:title,title,prompt:'공통 상황을 읽고 세 하위 문항에 답하시오.',stimulus,explanation:'설계 근거와 계산의 분모·조건을 함께 확인하세요.',keyPoints:['요구사항을 데이터 구조와 연산에 연결한다.','수치 계산의 단위와 분모를 확인한다.'],sources:source('데이터베이스 설계·운영·분석'),origin:r===0?'reference-adapted':'original',parts:[
+ {id:'design',title:'분석 및 구현',kind:r===1?'code':'essay',points:30,prompt:p1,modelAnswer:m1,explanation:m1,language:r===1?'SQL':undefined,rubric:[{label:'핵심 결과·설계를 제시했다',points:15},{label:'모범 답안의 조건과 근거를 충족했다',points:15}]},
+ {id:'reason',title:'설계 근거',kind:'essay',points:30,prompt:p2,modelAnswer:m2,explanation:m2,rubric:[{label:'주요 원인·위험을 설명했다',points:15},{label:'적절한 방안·해석을 제시했다',points:15}]},
+ {id:'calculate',title:'결과 계산',kind:'short',points:20,prompt:p3,modelAnswer:m3,acceptedAnswers:[m3],explanation:`상황의 수치와 조건을 적용한 결과는 ${m3}이다. 앞의 해설에서 계산 과정과 단위를 확인하세요.`}
+ ]});
+});
+export const dataQuestions:Question[]=[...multiple,...written].sort((a,b)=>a.round-b.round || Number(a.id.split('-').at(-1))-Number(b.id.split('-').at(-1)));
