@@ -109,7 +109,7 @@ choice('q69','69','business','프로젝트 일정 도구','아래에서 설명�
  ['Pareto Chart','발생 빈도순 막대와 누적 비율로 개선 우선순위를 분석한다.'],
  ['PERT (Program Evaluation and Review Technique) Chart','작업의 선후관계를 네트워크로 나타내고 불확실한 소요기간 추정 등을 지원한다. 수평 일정 막대의 명칭은 간트 차트다.']
 ],2,'각 작업의 시작·끝·기간을 시간축의 수평 막대로 나타내는 일정 도구는 간트 차트다. 캡처의 PERT 영문 풀이는 Program Evaluation and Review Technique로 바로잡았다.',
- '• 프로젝트 일정관리를 위한 바 차트 형태의 도구\n• 업무별 일정의 시작과 끝을 그래픽으로 표시하여 한눈에 볼 수 있는 차트\n\n작업  | M | M+1 | M+2 | M+3\nW1    | ■ |  ■  |     |\nW1.1  | ■ |     |     |\nW1.2  |   |  ■  |     |\nW2    |   |     |  ■  |  ■\nW2.1  |   |     |  ■  |\nW2.2  |   |     |     |  ■');
+ '• 프로젝트 일정관리를 위한 바 차트 형태의 도구\n• 업무별 일정의 시작과 끝을 그래픽으로 표시하여 한눈에 볼 수 있는 차트\n\n| 작업 | M | M+1 | M+2 | M+3 |\n| --- | --- | --- | --- | --- |\n| W1 | ■ | ■ | | |\n| W1.1 | ■ | | | |\n| W1.2 | | ■ | | |\n| W2 | | | ■ | ■ |\n| W2.1 | | | ■ | |\n| W2.2 | | | | ■ |');
 
 choice('q70','70','business','IT 아웃소싱','IT 아웃소싱의 특징으로 옳지 않은 것을 고르시오.',[
  ['발주기관의 비용 절감이 가능하다.','외부 전문 인력과 규모의 경제를 활용해 비용을 줄일 가능성이 있다. 다만 항상 절감되는 것은 아니므로 총비용을 검토한다.'],
@@ -149,5 +149,201 @@ choice('q75','75','business','소프트웨어 저작권','소프트웨어 저작
  ['소프트웨어 저작자는 소프트웨어를 사용·복제·배포·수정할 수 있는 권리를 가진다.','일반적으로 권리자는 복제·배포·개작 등을 통제한다. 구체적인 권리 귀속과 이용 범위는 별도 양도·계약 및 법의 규정에 따라 달라질 수 있다.']
 ],2,'정답은 ②다. 언어·규약·해법 자체와 이를 사용해 작성한 구체적인 창작적 프로그램 표현을 구분한다. 2026년 10월 9일 확인한 2026년 8월 11일 시행 저작권법 제101조의2를 근거로 했다.');
 bank[bank.length - 1].sources.push({title:'국가법령정보센터 · 저작권법',chapter:'제101조의2(보호의 대상)',url:'https://law.go.kr/LSW/lsLawLinkInfo.do?chrClsCd=010202&lsJoLnkSeq=1017054983',note:'2026-10-09 확인. 시행 2026-08-11, 법률 제21336호. 프로그램 언어·규약·해법 자체와 구체적 표현의 구분을 확인했다.'});
+
+
+const written = (id: string, number: string, domain: Domain, topic: string, kind: Question['kind'], points: number): Pick<Question,'id'|'round'|'domain'|'kind'|'points'|'difficulty'|'title'|'topic'|'sources'|'origin'> => ({
+  id: `official-${id}`, round: 0, domain, kind, points, difficulty: '응용',
+  title: number === '번호 확인 불가' ? '제공 수행 문항 · 번호 확인 불가' : `제공 문항 ${number}`,
+  topic, sources: [capture(number, topic)], origin: 'reference-adapted',
+});
+
+bank.push({ ...written('q60','60','business','BCG 사업 포트폴리오','essay',30),
+  prompt: '아래 상황을 참고하여 전기차 충전서비스가 BCG 매트릭스의 네 영역 중 어디에 속하는지 쓰고(10점), 그 이유를 설명하시오(20점).',
+  stimulus: 'A기업은 배달서비스와 전기차 충전서비스를 운영한다. 배달서비스는 꾸준하고 안정적인 수익을 주지만 성장이 정체되어 있다. 전기차 충전서비스는 금년에 시작해 시장점유율은 낮으나 향후 시장이 크게 확대될 것으로 예상된다.\n\n| 시장성장률 / 상대적 시장점유율 | 높음 | 낮음 |\n| --- | --- | --- |\n| 높음 | Star | Question Mark |\n| 낮음 | Cash Cow (배달서비스) | Dog |',
+  explanation: 'BCG는 시장성장률과 상대적 시장점유율이라는 두 축으로 구분한다. 신사업이라는 사실만으로 정하지 말고 “점유율이 낮다”와 “시장 확대가 예상된다”를 함께 적용한다.',
+  modelAnswer: '전기차 충전서비스는 Question Mark(물음표) 영역에 해당한다. 사업을 새로 시작해 현재 시장점유율이 낮고, 향후 시장이 크게 확대될 것으로 예상되어 시장성장률은 높기 때문이다. 높은 성장 가능성이 있으나 자사의 점유율 확대와 경쟁력 확보를 위해 선택적 투자와 검토가 필요하다.',
+  keyPoints: ['높은 시장성장률 + 낮은 상대적 시장점유율 → Question Mark','기업 매출 성장과 시장 전체 성장률을 구분한다.'],
+  rubric: [{label:'Question Mark(물음표) 영역을 정확히 쓴다.',points:10},{label:'현재 시장점유율이 낮다는 조건을 설명한다.',points:10},{label:'향후 시장 확대에 따른 높은 시장성장률을 연결한다.',points:10}],
+});
+
+bank.push({ ...written('q7','7','software','너비 우선 탐색','essay',30),
+  prompt: '아래 그래프를 a에서 시작하여 너비 우선 탐색(BFS)한다. 동작 방식을 설명하고(20점), a부터 g까지의 탐색 순서를 쓰시오(10점). 같은 깊이에서는 그림의 왼쪽 노드부터 방문한다.',
+  stimulus: '```text\n        a\n      /   \\\n     b     c\n    / \\   / \\\n   d   e f   g\n```\n간선: a-b, a-c, b-d, b-e, c-f, c-g',
+  explanation: 'BFS는 시작점에서 간선 수가 가까운 정점부터 탐색한다. 선입선출 큐를 사용하며, 일반 그래프에서는 방문 표시로 중복 탐색을 막는다. “클래스 계층”이 아니라 그래프에서 시작점으로부터의 거리 또는 깊이를 말한다.',
+  modelAnswer: '시작 정점 a를 방문 표시하고 큐에 넣는다. 큐 앞에서 정점을 꺼내 처리한 뒤 아직 방문하지 않은 인접 정점을 왼쪽부터 방문 표시하고 큐 뒤에 넣는다. 큐가 빌 때까지 반복하므로 깊이 0의 a, 깊이 1의 b·c, 깊이 2의 d·e·f·g 순서로 탐색한다. 최종 순서는 a → b → c → d → e → f → g다.\n\n큐 변화: [a] → [b,c] → [c,d,e] → [d,e,f,g] → [e,f,g] → [f,g] → [g] → []',
+  keyPoints: ['가까운 깊이를 먼저 방문','FIFO 큐와 방문 표시','같은 깊이의 순서는 인접 정점 처리 순서에 따른다.'],
+  rubric: [{label:'시작점과 가까운 깊이의 정점부터 탐색한다고 설명한다.',points:10},{label:'FIFO 큐의 인출·인접 정점 삽입과 방문 표시를 설명한다.',points:10},{label:'a → b → c → d → e → f → g 순서를 정확히 쓴다.',points:10}],
+});
+
+bank.push({ ...written('q25','25','data','연관관계 분석의 지지도','essay',30),
+  prompt: '구매자별 구매 품목표를 이용하여 우유와 요구르트의 지지도를 구하고(15점), 도출된 값의 의미를 설명하시오(15점).',
+  stimulus: '| 구매자 | 유제품 구매 품목 |\n| --- | --- |\n| 고객1 | 우유, 생크림, 요구르트 |\n| 고객2 | 우유, 버터, 요구르트 |\n| 고객3 | 치즈, 우유, 요구르트 |\n| 고객4 | 우유, 요구르트, 버터 |\n| 고객5 | 생크림, 버터, 치즈 |',
+  explanation: '지지도는 두 품목을 함께 포함한 거래 수를 전체 거래 수로 나눈다. 분모를 우유 구매 거래로 한정하는 신뢰도와 구분한다.',
+  modelAnswer: '전체 거래는 5건이며 우유와 요구르트를 함께 구매한 거래는 고객1~4의 4건이다. 따라서 지지도 Support(우유, 요구르트)=4/5=0.8=80%다. 이는 전체 구매 거래의 80%에 두 품목이 함께 들어 있다는 뜻이다. 우유를 구매한 거래 중 요구르트도 구매한 비율을 묻는 신뢰도라면 4/4=100%지만, 여기서는 지지도를 물었다.',
+  keyPoints: ['지지도 분모는 전체 거래','동시 구매 4건 / 전체 5건 = 80%','지지도와 신뢰도는 다르다.'],
+  rubric: [{label:'동시 구매 4건과 전체 5건을 확인하여 4/5=80%를 계산한다.',points:15},{label:'전체 거래 중 우유·요구르트를 함께 포함한 거래의 비율이라고 설명한다.',points:15}],
+});
+
+const bubbleStarter = `def my_sort(arr):
+    __ㄱ__ = len(arr)
+    for __ㄴ__ in range(length - 1):
+        for i in range(0, length - 1 - num):
+            if __ㄷ__:
+                arr[i], arr[i + 1] = __ㄹ__
+    return arr
+
+arr = [60, 30, 40, 10, 20, 50]
+print("정렬 전:", arr)
+arr = my_sort(arr)
+print("정렬 후:", arr)`;
+const bubbleAnswer = `# ㄱ: length / ㄴ: num / ㄷ: arr[i] > arr[i + 1] / ㄹ: arr[i + 1], arr[i]
+def my_sort(arr):
+    length = len(arr)
+    for num in range(length - 1):
+        for i in range(0, length - 1 - num):
+            if arr[i] > arr[i + 1]:
+                arr[i], arr[i + 1] = arr[i + 1], arr[i]
+    return arr
+
+arr = [60, 30, 40, 10, 20, 50]
+print("정렬 전:", arr)
+arr = my_sort(arr)
+print("정렬 후:", arr)`;
+bank.push({ ...written('q4','4','software','버블 정렬 빈칸','code',50),
+  prompt: '주어진 파이썬 코드가 오름차순 버블 정렬을 수행하도록 ㄱ~ㄹ을 완성하시오. ㄱ·ㄴ은 각 10점, ㄷ·ㄹ은 각 15점이다. 빈칸 답을 ㄱ: 답안 / ㄴ: 답안 / ㄷ: 답안 / ㄹ: 답안 형식으로 쓰거나 전체 코드를 작성할 수 있다.',
+  stimulus: '```python\n'+bubbleStarter+'\n```', language:'Python', starterCode:'ㄱ: \nㄴ: \nㄷ: \nㄹ: ',
+  explanation: 'length는 리스트 길이, num은 완료한 바깥 반복 횟수다. 인접한 앞 값이 뒤 값보다 크면 자리를 바꾸므로 큰 값이 오른쪽 끝으로 이동한다. 끝에 확정된 num개는 다시 비교하지 않아 안쪽 범위가 length-1-num이다. 파이썬의 두 변수 동시 대입은 오른쪽 값을 먼저 평가하므로 임시 변수 없이 교환할 수 있다. 결과는 [10, 20, 30, 40, 50, 60]이다.',
+  modelAnswer: bubbleAnswer,
+  keyPoints: ['ㄱ length / ㄴ num','오름차순 비교: arr[i] > arr[i + 1]','교환: arr[i + 1], arr[i]','range의 끝값은 포함하지 않는다.'],
+  rubric: [{label:'ㄱ에 length를 써 뒤의 길이 참조와 일치시킨다.',points:10},{label:'ㄴ에 num을 써 안쪽 반복 범위와 일치시킨다.',points:10},{label:'ㄷ에 arr[i] > arr[i + 1] 또는 의미가 같은 조건을 쓴다.',points:15},{label:'ㄹ에 arr[i + 1], arr[i]를 써 인접 값을 교환한다.',points:15}],
+});
+
+const threadStarter = `public class ThreadScheduler {
+    public __ㄱ__ void main(String[] args) {
+        final long timeInterval = __ㄴ__; // 10초
+        Runnable runnable = __ㄷ__ {
+            public void run() {
+                while (true) {
+                    // 센서 신호 수집 코드(생략)
+                    try {
+                        __ㄹ__(timeInterval);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        __ㅁ__;
+    }
+}`;
+const threadAnswer = `// ㄱ: static / ㄴ: 10000 / ㄷ: new Runnable() / ㄹ: Thread.sleep / ㅁ: thread.start()
+public class ThreadScheduler {
+    public static void main(String[] args) {
+        final long timeInterval = 10000L;
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    // 센서 신호 수집 코드(생략)
+                    try {
+                        Thread.sleep(timeInterval);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        Thread thread = new Thread(runnable);
+        thread.start();
+    }
+}`;
+bank.push({ ...written('q5','5','software','Java 스레드 실행','code',50),
+  prompt: '공장 설비의 센서 신호를 반복 수집하고 수집 후 10초 동안 대기하는 Java Thread 코드의 ㄱ~ㅁ을 완성하시오(각 10점). 빈칸별 답 또는 전체 코드를 작성하시오.',
+  stimulus:'```java\n'+threadStarter+'\n```', language:'Java', starterCode:'ㄱ: \nㄴ: \nㄷ: \nㄹ: \nㅁ: ',
+  explanation:'static은 제시된 main 선언에 필요한 키워드다. Thread.sleep의 시간 단위는 밀리초이므로 10초=10,000ms다. new Runnable() { ... }는 run을 구현하는 익명 클래스의 객체를 만든다. Thread.sleep은 현재 실행 중인 스레드를 대기시키고, thread.start()는 별도 스레드에서 run이 실행되도록 시작한다. thread.run()을 직접 호출하는 것은 새 스레드 시작이 아니다. 원문처럼 수집 후 sleep하면 실제 수집 시작 간격에는 수집·스케줄링 시간도 더해지므로 정확한 고정 주기 10초를 보장하지 않는다. 또한 예제의 catch는 예외 출력 뒤 반복을 계속한다.',
+  modelAnswer:threadAnswer,
+  keyPoints:['ㄱ static / ㄴ 10000(또는 10000L)','ㄷ new Runnable() / ㄹ Thread.sleep / ㅁ thread.start()','start()와 run()의 직접 호출을 구분한다.','밀리초 단위의 대기이며 엄밀한 고정 주기 스케줄러는 아니다.'],
+  rubric:[{label:'ㄱ에 static을 쓴다.',points:10},{label:'ㄴ에 10000 또는 10000L을 쓴다.',points:10},{label:'ㄷ에 new Runnable()을 쓴다.',points:10},{label:'ㄹ에 Thread.sleep을 쓴다.',points:10},{label:'ㅁ에 thread.start()를 쓴다.',points:10}],
+});
+
+const robotCode = `public class Robot {
+    protected void move() {
+        System.out.println("작동하다.");
+    }
+    public void stop() {
+        System.out.println("멈추다.");
+    }
+    public void grab() {
+        System.out.println("잡다.");
+    }
+}
+
+public class CookRobot extends Robot {
+    public void grab() {
+        System.out.println("요리팬을 잡다.");
+    }
+}
+
+public class CleanRobot extends Robot {
+    public void grab() {
+        System.out.println("청소 도구를 잡다.");
+    }
+}`;
+const robotDiagram: Diagram = {
+ nodes:[
+  {id:'robot',shape:'class',x:400,y:100,label:'Robot\n# move(): void\n+ stop(): void\n+ grab(): void'},
+  {id:'cook',shape:'class',x:215,y:310,label:'CookRobot\n+ grab(): void'},
+  {id:'clean',shape:'class',x:585,y:310,label:'CleanRobot\n+ grab(): void'},
+ ],
+ edges:[{id:'cook-parent',from:'cook',to:'robot',kind:'inheritance'},{id:'clean-parent',from:'clean',to:'robot',kind:'inheritance'}],
+};
+const coffeeCode = `public class CoffeeRobot extends Robot {
+    public void grab(int number) {
+        if (number == 1) {
+            System.out.println("컵을 잡다.");
+        } else {
+            System.out.println("그라인더를 잡다.");
+        }
+    }
+}`;
+bank.push({ ...written('robots','번호 확인 불가','software','클래스 상속과 메서드 작성','compound',80),
+  prompt:'공통 Java 소스를 읽고 클래스 다이어그램과 CoffeeRobot 코드를 작성하시오. 각 하위 문항은 40점이다.',
+  stimulus:'보기 1 — Java 소스(각 public 클래스는 별도 파일에 저장하는 형태)\n\n```java\n'+robotCode+'\n```\n\n보기 2 — CoffeeRobot 요건\nCoffeeRobot은 Robot을 상속한다. 정수 매개변수 number를 받아 1이면 “컵을 잡다.”, 그 외이면 “그라인더를 잡다.”를 출력하는 grab 메서드를 작성한다.',
+  explanation:'제공 캡처의 보기 1과 보기 2 및 두 하위 문항을 한 통합 문항으로 정리했다. 캡처에서 잘린 괄호와 CleanRobot 출력문의 누락된 세미콜론은 실행 가능한 예시를 위해 보완했다. 부모 grab()과 매개변수가 다른 grab(int)는 오버로딩이며 @Override를 붙이지 않는다.',
+  keyPoints:['상속은 자식에서 부모로 향하는 실선과 빈 삼각형으로 표시한다.','public은 +, protected는 #다.','메서드의 매개변수 목록이 다르면 오버로딩이다.'],
+  parts:[
+   {id:'robot-uml',title:'클래스 다이어그램',kind:'diagram',points:40,
+    prompt:'보기 1의 Robot, CookRobot, CleanRobot 클래스와 명시된 메서드, 접근 제어, 상속 관계를 모두 포함해 클래스 다이어그램을 그리시오.',
+    modelAnswer:'Robot에 # move(): void, + stop(): void, + grab(): void를 쓴다. CookRobot과 CleanRobot에는 각각 + grab(): void를 쓴다. 두 자식에서 Robot을 향하도록 실선과 빈 삼각형을 그린다. 자식은 move와 stop을 상속받으므로 반복 표기는 생략할 수 있다.',
+    explanation:'extends Robot은 일반화(상속) 관계다. 빈 삼각형은 부모 Robot 쪽을 향한다. 출력 문자열은 메서드 내부 구현이므로 클래스 다이어그램의 속성으로 적지 않는다. grab은 두 자식에서 같은 시그니처로 재정의한다.', modelDiagram:robotDiagram,
+    rubric:[{label:'Robot, CookRobot, CleanRobot 세 클래스를 표시한다.',points:10},{label:'Robot의 세 메서드와 #·+ 접근 제어 및 void를 올바르게 표시한다.',points:10},{label:'두 자식에 + grab(): void를 표시한다.',points:10},{label:'두 자식에서 Robot으로 향하는 일반화(빈 삼각형) 관계를 표시한다.',points:10}]},
+   {id:'coffee-code',title:'CoffeeRobot 구현',kind:'code',points:40,language:'Java',starterCode:'public class CoffeeRobot extends Robot {\n    // number에 따라 출력하는 grab 메서드를 작성하세요.\n}',
+    prompt:'보기 2의 요건을 만족하는 CoffeeRobot 클래스를 Java로 작성하시오.',modelAnswer:coffeeCode,
+    explanation:'extends Robot으로 상속받고 public void grab(int number)를 추가한다. ==는 값을 비교하며 =는 대입이다. println은 문자열을 출력한 뒤 줄바꿈한다. 이 메서드는 부모의 grab()과 인자 목록이 달라 오버라이딩이 아니라 오버로딩이다. 따라서 매개변수 없는 grab()은 여전히 상속되며 이 메서드에 @Override를 붙이면 컴파일 오류다.',
+    rubric:[{label:'CoffeeRobot이 extends Robot으로 상속한다.',points:10},{label:'number 매개변수를 받는 public void grab(int number)를 선언한다.',points:10},{label:'number == 1과 그 외의 분기를 올바르게 작성한다.',points:10},{label:'분기별로 지정한 두 문자열을 System.out.println으로 출력한다.',points:10}]},
+  ],
+});
+
+const personCode = `class Person {
+    private Car myCar;
+    public Person(Car car) {
+        myCar = car;
+    }
+    // 이하 생략
+}
+
+class Car {
+    public void ride() { /* 코드 생략 */ }
+}`;
+bank.push({ ...written('q6','6','software','객체 참조와 클래스 관계','diagram',50),
+ prompt:'아래 소스 코드에 명시된 요소를 모두 포함하여 클래스 다이어그램을 작성하시오.',
+ stimulus:'```java\n'+personCode+'\n```',
+ explanation:'Person은 필드 myCar로 Car를 지속적으로 참조하므로 Person→Car 연관 관계로 나타낼 수 있다. 외부에서 생성된 Car를 전달받는 코드만으로 전체·부분이라는 도메인 의미나 수명주기 소유를 확정할 수는 없다. 자동차를 사람의 독립적인 구성요소로 모델링한다는 추가 가정에서는 Person 쪽의 빈 마름모(집합)로 나타낼 수 있지만, 코드만을 근거로 집합 관계를 유일한 정답으로 강제하지 않는다. 합성 관계의 채운 마름모는 이 코드만으로 뒷받침되지 않는다. 생성자는 반환형을 쓰지 않는다.',
+ modelAnswer:'Person\n- myCar: Car\n+ Person(car: Car)\n\nCar\n+ ride(): void\n\nPerson에서 Car를 참조하는 연관 관계를 연결한다. 참조 필드 이름을 선의 역할명 myCar로 표시해도 된다. 전체·부분의 추가 가정을 명시했다면 Person 쪽에 빈 마름모를 둔 집합 관계도 학습용 모델로 설명할 수 있다. 단순히 “외부 객체를 전달받는다”는 사실만으로 집합 관계가 필수라고 단정하지 않는다.',
+ modelDiagram:{nodes:[{id:'person',shape:'class',x:225,y:150,label:'Person\n- myCar: Car\n+ Person(car: Car)'},{id:'car',shape:'class',x:575,y:150,label:'Car\n+ ride(): void'}],edges:[{id:'car-reference',from:'person',to:'car',kind:'arrow',label:'myCar'}]},
+ keyPoints:['클래스 박스: 이름·속성·연산','private은 -, public은 +','생성자에는 반환형을 쓰지 않는다.','연관 관계와 도메인 의미를 추가한 집합 관계를 구분한다.'],
+ rubric:[{label:'Person과 Car 클래스를 구분해 표시한다.',points:10},{label:'Person의 private 필드 - myCar: Car를 표시한다.',points:10},{label:'+ Person(car: Car) 생성자를 반환형 없이 표시한다.',points:10},{label:'Car의 + ride(): void를 표시한다.',points:10},{label:'Person의 Car 참조 관계를 표시한다. 연관을 인정하며 집합은 추가 의미를 설명한 경우 허용한다.',points:10}],
+});
 
 export const officialQuestions: Question[] = bank;
