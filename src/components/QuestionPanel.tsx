@@ -120,7 +120,7 @@ function QuestionInput({
         </label>
         <span>{a.value.length}자</span>
       </div>
-      {q.kind === "short" ? (
+      {q.kind === "short" && q.acceptedAnswers?.length ? (
         <input
           id={`answer-${q.id}`}
           value={a.value}
@@ -177,7 +177,7 @@ function Explanation({
               ? `내 답: ${q.options?.find((o) => o.id === a.submittedValue)?.text ?? "미응답"} · 정답: ${q.options?.find((o) => o.id === q.answer)?.text}`
               : auto
                 ? `정답: ${q.modelAnswer ?? q.acceptedAnswers?.[0] ?? q.answer}`
-                : "서술·코드·다이어그램은 아래 기준으로 직접 평가합니다."}
+                : "자유 형식 답안은 아래 기준으로 직접 평가합니다."}
           </p>
         </div>
       </div>
