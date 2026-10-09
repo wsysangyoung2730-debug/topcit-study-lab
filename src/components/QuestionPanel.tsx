@@ -385,7 +385,7 @@ export function QuestionPanel({
                 <Explanation q={p} a={pa} onChange={change} />
                 <details className="source-details">
                   <summary>통합 문제의 학습 근거</summary>
-                  <RichText text={q.explanation} />
+                  {a.checked && <RichText text={q.explanation} />}
                   {q.sources.map((source, i) => (
                     <p key={i}>
                       {source.title} · {source.chapter} {source.pages}
