@@ -289,7 +289,11 @@ export function DiagramView({
                       ? -w / 2 + 10
                       : 0
                   }
-                  y={-h / 2 + 25 + i * 20}
+                  y={
+                    n.shape === "class" || n.shape === "entity"
+                      ? -h / 2 + 25 + i * 20
+                      : (i - (n.label.split("\n").length - 1) / 2) * 20 + 5
+                  }
                   textAnchor={
                     n.shape === "class" || n.shape === "entity"
                       ? "start"
@@ -302,6 +306,21 @@ export function DiagramView({
                   {line}
                 </text>
               ))}
+            {n.shape === "class" &&
+              (() => {
+                const index = n.label
+                  .split("\n")
+                  .findIndex((line, i) => i > 0 && line.includes("("));
+                return index > 1 ? (
+                  <line
+                    x1={-w / 2}
+                    x2={w / 2}
+                    y1={-h / 2 + 15 + index * 20}
+                    y2={-h / 2 + 15 + index * 20}
+                    stroke="#244a42"
+                  />
+                ) : null;
+              })()}
             {(n.shape === "class" || n.shape === "entity") && (
               <line
                 x1={-w / 2}
