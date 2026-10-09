@@ -41,13 +41,15 @@ import {
 } from "./lib/study";
 import { exportState, readState, writeState, stageState } from "./lib/storage";
 import { QuestionPanel, RichText } from "./components/QuestionPanel";
+import { ConceptGuide } from "./components/ConceptGuide";
+import { relatedConcepts } from "./concepts";
 import { ResizablePanes } from "./components/ResizablePanes";
 const lookup = new Map(questions.map((q) => [q.id, q]));
 const modeLabels: Record<Mode, string> = {
   study: "학습 모드",
   exam: "모의시험",
   random: "랜덤 연습",
-  review: "오답 복습",
+  review: "복습 모드",
 };
 const pad = (n: number) => String(n).padStart(2, "0");
 export default function App() {
@@ -56,6 +58,7 @@ export default function App() {
     [saveStatus, setSaveStatus] = useState("불러오는 중"),
     [view, setView] = useState<"home" | "session">("home"),
     [section, setSection] = useState("rounds"),
+    [conceptId, setConceptId] = useState<string | null>(null),
     [menu, setMenu] = useState(false),
     [now, setNow] = useState(Date.now()),
     [filter, setFilter] = useState<Domain | "all">("all"),
@@ -300,6 +303,7 @@ export default function App() {
             <div className="nav-label">학습 메뉴</div>
             <nav>
               {[
+                ["concepts", "개념 정리", BookOpen],
                 ["rounds", "회차별 학습", LayoutGrid],
                 ["random", "랜덤 연습", Shuffle],
                 ["review", "오답 · 북마크", Bookmark],
@@ -513,7 +517,9 @@ export default function App() {
             </span>
             <span className="mode-label">
               {view === "home"
-                ? "회차 선택"
+                ? section === "concepts"
+                  ? "개념 정리"
+                  : "회차 선택"
                 : active?.round === 0
                   ? "공식 문항 복습"
                   : `${active?.round ? `${pad(active.round)}회차 · ` : ""}${active ? modeLabels[active.mode] : ""}`}
@@ -539,68 +545,83 @@ export default function App() {
               <main className="home-content home-page">
                 <div className="home-intro">
                   <h1>
-                    {section === "rounds"
-                      ? "모의응시 · 회차 선택"
-                      : section === "random"
-                        ? "랜덤 연습"
-                        : section === "review"
-                          ? "오답 · 북마크"
-                          : "학습 기록"}
+                    {section === "concepts"
+                      ? "개념 정리 · 교재 1~5권"
+                      : section === "rounds"
+                        ? "모의응시 · 회차 선택"
+                        : section === "random"
+                          ? "랜덤 연습"
+                          : section === "review"
+                            ? "오답 · 북마크"
+                            : "학습 기록"}
                   </h1>
                   <p>
-                    {section === "rounds"
-                      ? "회차를 선택하여 학습하거나 제한 시간 안에 모의시험을 응시할 수 있습니다."
-                      : section === "random"
-                        ? "영역과 개념을 선택해 여러 회차의 문제를 섞어 연습합니다."
-                        : section === "review"
-                          ? "틀린 문항과 검토할 문항을 모아서 다시 풀이합니다."
-                          : "문항별 최근 확인 결과와 학습 이력을 확인합니다."}
+                    {section === "concepts"
+                      ? "핵심 요약과 비교표로 개념을 익히고 관련 문제를 풀어 보세요."
+                      : section === "rounds"
+                        ? "회차를 선택하여 학습하거나 제한 시간 안에 모의시험을 응시할 수 있습니다."
+                        : section === "random"
+                          ? "영역과 개념을 선택해 여러 회차의 문제를 섞어 연습합니다."
+                          : section === "review"
+                            ? "틀린 문항과 검토할 문항을 모아서 다시 풀이합니다."
+                            : "문항별 최근 확인 결과와 학습 이력을 확인합니다."}
                   </p>
                 </div>
-                <div className="stats-strip">
-                  <div>
-                    <BookOpen size={19} />
-                    <span>
-                      학습한 문제
-                      <strong>
-                        {answered.length}
-                        <small> / {questions.length}</small>
-                      </strong>
-                    </span>
+                {section !== "concepts" && (
+                  <div className="stats-strip">
+                    <div>
+                      <BookOpen size={19} />
+                      <span>
+                        학습한 문제
+                        <strong>
+                          {answered.length}
+                          <small> / {questions.length}</small>
+                        </strong>
+                      </span>
+                    </div>
+                    <div>
+                      <Target size={19} />
+                      <span>
+                        객관·단답 정답률
+                        <strong>
+                          {autoRecords.length
+                            ? `${Math.round((autoRecords.filter(Boolean).length / autoRecords.length) * 100)}%`
+                            : "—"}
+                          <small> 최근 답안 기준</small>
+                        </strong>
+                      </span>
+                    </div>
+                    <div>
+                      <Bookmark size={19} />
+                      <span>
+                        다시 볼 문제
+                        <strong>
+                          {state.bookmarks.length}
+                          <small> 북마크</small>
+                        </strong>
+                      </span>
+                    </div>
+                    <div>
+                      <GraduationCap size={21} />
+                      <span>
+                        준비된 연습
+                        <strong>
+                          10<small> 회차 · 750문항</small>
+                        </strong>
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <Target size={19} />
-                    <span>
-                      객관·단답 정답률
-                      <strong>
-                        {autoRecords.length
-                          ? `${Math.round((autoRecords.filter(Boolean).length / autoRecords.length) * 100)}%`
-                          : "—"}
-                        <small> 최근 답안 기준</small>
-                      </strong>
-                    </span>
-                  </div>
-                  <div>
-                    <Bookmark size={19} />
-                    <span>
-                      다시 볼 문제
-                      <strong>
-                        {state.bookmarks.length}
-                        <small> 북마크</small>
-                      </strong>
-                    </span>
-                  </div>
-                  <div>
-                    <GraduationCap size={21} />
-                    <span>
-                      준비된 연습
-                      <strong>
-                        10<small> 회차 · 750문항</small>
-                      </strong>
-                    </span>
-                  </div>
-                </div>
-                {section === "rounds" ? (
+                )}
+                {section === "concepts" ? (
+                  <ConceptGuide
+                    selectedId={conceptId}
+                    onSelect={(id) => {
+                      setConceptId(id);
+                      window.scrollTo(0, 0);
+                    }}
+                    onPractice={(ids) => start("review", ids)}
+                  />
+                ) : section === "rounds" ? (
                   <>
                     <div className="section-heading">
                       <div>
@@ -958,37 +979,40 @@ export default function App() {
                     </span>
                   </div>
                 )}
-                <ResizablePanes resetKey={q.id} top={
-                  <div className="question-header">
-                    <div className="question-number-panel">
-                      <strong>{active.index + 1}</strong>
-                      <span>
-                        {kindLabels[q.kind]}
-                        <br />
-                        {q.points}점
-                      </span>
-                      <label className="review-check">
-                        <input
-                          type="checkbox"
-                          checked={state.bookmarks.includes(q.id)}
-                          onChange={() => bookmark(q.id)}
-                        />
-                        검토하기
-                      </label>
-                    </div>
-                    <div className="question-heading">
-                      <h2>{q.title}</h2>
-                      <div className="question-prompt">
-                        <RichText text={q.prompt} />
+                <ResizablePanes
+                  resetKey={q.id}
+                  top={
+                    <div className="question-header">
+                      <div className="question-number-panel">
+                        <strong>{active.index + 1}</strong>
+                        <span>
+                          {kindLabels[q.kind]}
+                          <br />
+                          {q.points}점
+                        </span>
+                        <label className="review-check">
+                          <input
+                            type="checkbox"
+                            checked={state.bookmarks.includes(q.id)}
+                            onChange={() => bookmark(q.id)}
+                          />
+                          검토하기
+                        </label>
                       </div>
-                      {q.stimulus && (
-                        <div className="stimulus">
-                          <RichText text={q.stimulus} />
+                      <div className="question-heading">
+                        <h2>{q.title}</h2>
+                        <div className="question-prompt">
+                          <RichText text={q.prompt} />
                         </div>
-                      )}
+                        {q.stimulus && (
+                          <div className="stimulus">
+                            <RichText text={q.stimulus} />
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  }>
+                  }
+                >
                   <div className="answer-section">
                     <QuestionPanel
                       key={`${active.id}-${q.id}`}
@@ -998,6 +1022,29 @@ export default function App() {
                       exam={active.mode === "exam"}
                       ended={Boolean(active.endedAt)}
                     />
+                    {(active.mode !== "exam" || active.endedAt) &&
+                      (a.checked ||
+                        (a.parts &&
+                          Object.values(a.parts).some(
+                            (part) => part.checked,
+                          ))) &&
+                      relatedConcepts(q).length > 0 && (
+                        <div className="concept-links">
+                          <strong>이 문제의 개념 다시 보기</strong>
+                          {relatedConcepts(q).map((lesson) => (
+                            <button
+                              key={lesson.id}
+                              onClick={() => {
+                                setConceptId(lesson.id);
+                                goHome("concepts");
+                                window.scrollTo(0, 0);
+                              }}
+                            >
+                              {lesson.title} →
+                            </button>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 </ResizablePanes>
                 <div className="question-nav">
