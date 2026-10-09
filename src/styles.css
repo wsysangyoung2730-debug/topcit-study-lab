@@ -642,3 +642,15 @@ input:disabled, textarea:disabled { color: #555; background: #f4f5f7; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+/* The two exam panes scroll independently; the middle handle resizes their share. */
+.split-panes { display: grid; height: calc(100dvh - var(--header-height) - var(--footer-height) - 105px); min-height: 390px; overflow: hidden; }
+.split-pane { min-height: 0; min-width: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.split-pane:focus-visible { outline: 2px solid #4e7fc4; outline-offset: -2px; }
+.split-panes .question-header { min-height: 0; }
+.pane-resizer { display: flex; align-items: center; justify-content: center; gap: 14px; cursor: row-resize; touch-action: none; user-select: none; border-top: 1px solid #dde1e7; border-bottom: 1px solid #aeb7c3; color: #7c8ba0; background: #f5f7fa; }
+.pane-resizer > span { letter-spacing: 4px; }
+.pane-resizer small { font-size: 10px; }
+.pane-resizer:hover, .pane-resizer:focus-visible, .resizing .pane-resizer { background: #e1ecfd; color: #244f88; outline: none; box-shadow: inset 0 0 0 2px #628ac1; }
+.resizing { user-select: none; }
+@media (max-width: 640px) { .split-panes { min-height: 400px; height: calc(100dvh - 200px); } }

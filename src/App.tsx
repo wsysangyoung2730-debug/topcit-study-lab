@@ -41,6 +41,7 @@ import {
 } from "./lib/study";
 import { exportState, readState, writeState, stageState } from "./lib/storage";
 import { QuestionPanel, RichText } from "./components/QuestionPanel";
+import { ResizablePanes } from "./components/ResizablePanes";
 const lookup = new Map(questions.map((q) => [q.id, q]));
 const modeLabels: Record<Mode, string> = {
   study: "학습 모드",
@@ -957,7 +958,7 @@ export default function App() {
                     </span>
                   </div>
                 )}
-                <article className="question-card">
+                <ResizablePanes resetKey={q.id} top={
                   <div className="question-header">
                     <div className="question-number-panel">
                       <strong>{active.index + 1}</strong>
@@ -987,9 +988,7 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                  <div className="section-divider" aria-hidden="true">
-                    •••
-                  </div>
+                  }>
                   <div className="answer-section">
                     <QuestionPanel
                       key={`${active.id}-${q.id}`}
@@ -1000,7 +999,7 @@ export default function App() {
                       ended={Boolean(active.endedAt)}
                     />
                   </div>
-                </article>
+                </ResizablePanes>
                 <div className="question-nav">
                   <span className="nav-question-count">
                     {active.index + 1} / {active.ids.length} 문항
