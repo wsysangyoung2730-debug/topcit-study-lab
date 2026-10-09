@@ -1,6 +1,6 @@
 import type { Diagram, Question, QuestionPart } from '../types';
 export type Mode = 'study' | 'exam' | 'random' | 'review';
-export interface Answer { value: string; diagram?: Diagram; checked: boolean; correct?: boolean; rubric: number[]; parts: Record<string, Answer>; submittedValue?: string; checks: number; }
+export interface Answer { value: string; diagram?: Diagram; checked: boolean; correct?: boolean; rubric: number[]; parts: Record<string, Answer>; submittedValue?: string; checks: number; history?: {value:string;correct?:boolean;at:number}[]; }
 export interface Session { id: string; mode: Mode; round?: number; ids: string[]; index: number; startedAt: number; deadline?: number; endedAt?: number; }
 export interface StudyState { version: 1; answers: Record<string, Answer>; bookmarks: string[]; sessions: Session[]; activeId?: string; }
 export const emptyAnswer = (): Answer => ({value:'',checked:false,rubric:[],parts:{},checks:0});
@@ -10,7 +10,7 @@ export function grade(q: Question | QuestionPart, a: Answer): Answer {
   const choices = q.kind === 'choice';
   const auto = choices || (q.kind === 'short' && Boolean(q.acceptedAnswers?.length));
   const correct = auto ? (choices ? a.value === q.answer : q.acceptedAnswers!.some(x=>normalize(x) === normalize(a.value))) : undefined;
-  return {...a, checked:true, correct, submittedValue:a.value, checks:a.checks+1};
+  return {...a, checked:true, correct, submittedValue:a.value, checks:a.checks+1,history:[...(a.history??[]),{value:a.value,correct,at:Date.now()}]};
 }
 export function answerKey(session: Session, id: string) { return `${session.id}::${id}`; }
 export function hasAnswer(a?: Answer): boolean { return Boolean(a && (a.value.trim() || a.diagram?.nodes.length || Object.values(a.parts).some(hasAnswer))); }
@@ -24,9 +24,11 @@ export function score(q: Question | QuestionPart, a?: Answer): {auto:number; sel
   return {auto:0,self:(a?.checked?a.rubric:[] )?.reduce((n,i)=>n+(q.rubric?.[i]?.points??0),0)??0,autoMax:0,selfMax:q.points};
 }
 export function isStudyState(value: unknown): value is StudyState {
-  if(!value || typeof value!=='object')return false;
-  const s=value as StudyState;
-  if(s.version!==1 || !Array.isArray(s.bookmarks) || !s.bookmarks.every(x=>typeof x==='string') || !Array.isArray(s.sessions) || !s.answers || typeof s.answers!=='object' || Array.isArray(s.answers))return false;
-  const validAnswer=(a: Answer, depth=0):boolean=>Boolean(a && depth<4 && typeof a.value==='string' && typeof a.checked==='boolean' && Array.isArray(a.rubric) && a.rubric.every(Number.isInteger) && a.parts && typeof a.parts==='object' && Object.values(a.parts).every(x=>validAnswer(x,depth+1)) && (!a.diagram || (Array.isArray(a.diagram.nodes) && Array.isArray(a.diagram.edges) && a.diagram.nodes.every(n=>typeof n.id==='string' && typeof n.label==='string' && Number.isFinite(n.x)&&Number.isFinite(n.y)) && a.diagram.edges.every(e=>typeof e.from==='string'&&typeof e.to==='string'))));
-  return s.sessions.every(x=>x && typeof x.id==='string' && ['study','exam','random','review'].includes(x.mode) && Array.isArray(x.ids) && x.ids.every(y=>typeof y==='string') && Number.isInteger(x.index) && Number.isFinite(x.startedAt) && (x.deadline===undefined||Number.isFinite(x.deadline))) && Object.values(s.answers).every(a=>validAnswer(a));
+  if (!value || typeof value !== 'object') return false;
+  const s = value as StudyState;
+  const strings = (v: unknown): v is string[] => Array.isArray(v) && v.every(x => typeof x === 'string');
+  if(s.version!==1 || !strings(s.bookmarks) || !Array.isArray(s.sessions) || !s.answers || typeof s.answers!=='object' || Array.isArray(s.answers)) return false;
+  const validAnswer = (a: Answer, depth=0): boolean => Boolean(a && depth<4 && typeof a.value==='string' && typeof a.checked==='boolean' && (a.correct===undefined||typeof a.correct==='boolean') && Number.isInteger(a.checks) && a.checks>=0 && Array.isArray(a.rubric) && new Set(a.rubric).size===a.rubric.length && a.rubric.every(x=>Number.isInteger(x)&&x>=0) && a.parts && typeof a.parts==='object' && !Array.isArray(a.parts) && Object.values(a.parts).every(x=>validAnswer(x,depth+1)) && (!a.diagram || (Array.isArray(a.diagram.nodes) && Array.isArray(a.diagram.edges) && a.diagram.nodes.every(n=>n && typeof n.id==='string' && typeof n.label==='string' && ['action','decision','start','end','class','entity','bar'].includes(n.shape) && Number.isFinite(n.x)&&Number.isFinite(n.y)) && new Set(a.diagram.nodes.map(n=>n.id)).size===a.diagram.nodes.length && a.diagram.edges.every(e=>e && typeof e.id==='string' && a.diagram!.nodes.some(n=>n.id===e.from) && a.diagram!.nodes.some(n=>n.id===e.to))))) ;
+  if(!s.sessions.every(x=>x && typeof x.id==='string' && ['study','exam','random','review'].includes(x.mode) && strings(x.ids) && x.ids.length>0 && new Set(x.ids).size===x.ids.length && Number.isInteger(x.index) && x.index>=0 && x.index<x.ids.length && Number.isFinite(x.startedAt) && (x.deadline===undefined||Number.isFinite(x.deadline)) && (x.endedAt===undefined||Number.isFinite(x.endedAt)))) return false;
+  return new Set(s.sessions.map(x=>x.id)).size===s.sessions.length && (s.activeId===undefined||s.sessions.some(x=>x.id===s.activeId)) && Object.values(s.answers).every(a=>validAnswer(a));
 }
