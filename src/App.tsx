@@ -43,6 +43,7 @@ import { exportState, readState, writeState, stageState } from "./lib/storage";
 import { QuestionPanel, RichText } from "./components/QuestionPanel";
 import { ConceptGuide } from "./components/ConceptGuide";
 import { relatedConcepts } from "./concepts";
+import { ResizablePanes } from "./components/ResizablePanes";
 const lookup = new Map(questions.map((q) => [q.id, q]));
 const modeLabels: Record<Mode, string> = {
   study: "학습 모드",
@@ -968,7 +969,7 @@ export default function App() {
                     </span>
                   </div>
                 )}
-                <article className="question-card">
+                <ResizablePanes resetKey={q.id} top={
                   <div className="question-header">
                     <div className="question-number-panel">
                       <strong>{active.index + 1}</strong>
@@ -998,9 +999,7 @@ export default function App() {
                       )}
                     </div>
                   </div>
-                  <div className="section-divider" aria-hidden="true">
-                    •••
-                  </div>
+                  }>
                   <div className="answer-section">
                     <QuestionPanel
                       key={`${active.id}-${q.id}`}
@@ -1014,7 +1013,7 @@ export default function App() {
                       <div className="concept-links"><strong>이 문제의 개념 다시 보기</strong>{relatedConcepts(q).map(lesson => <button key={lesson.id} onClick={() => { setConceptId(lesson.id); goHome("concepts"); window.scrollTo(0, 0); }}>{lesson.title} →</button>)}</div>
                     )}
                   </div>
-                </article>
+                </ResizablePanes>
                 <div className="question-nav">
                   <span className="nav-question-count">
                     {active.index + 1} / {active.ids.length} 문항
