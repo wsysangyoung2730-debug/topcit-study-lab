@@ -1,9 +1,10 @@
+import type {Question} from '../types';
 import {softwareQuestions} from './software';
 import {dataQuestions} from './data';
 import {systemsQuestions} from './systems';
 import {businessQuestions} from './business';
 import {officialQuestions} from './official';
-export const questions=[...softwareQuestions,...dataQuestions,...systemsQuestions,...businessQuestions,...officialQuestions];
+export const questions:Question[]=[...softwareQuestions,...dataQuestions,...systemsQuestions,...businessQuestions,...officialQuestions];
 export const roundDescriptions=[
  {title:'기본기를 연결하는 첫 연습',description:'제공된 교재와 문제풀이 자료의 개념을 실전 형식으로 재구성했어요.'},
  {title:'구조를 이해하는 시간',description:'소프트웨어 설계, 데이터 구조와 업무 프로세스의 기초를 다져요.'},

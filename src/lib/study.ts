@@ -33,3 +33,11 @@ export function isStudyState(value: unknown): value is StudyState {
   if(!s.sessions.every(x=>x && typeof x.id==='string' && ['study','exam','random','review'].includes(x.mode) && strings(x.ids) && x.ids.length>0 && new Set(x.ids).size===x.ids.length && Number.isInteger(x.index) && x.index>=0 && x.index<x.ids.length && Number.isFinite(x.startedAt) && (x.deadline===undefined||Number.isFinite(x.deadline)) && (x.endedAt===undefined||Number.isFinite(x.endedAt)))) return false;
   return new Set(s.sessions.map(x=>x.id)).size===s.sessions.length && (s.activeId===undefined||s.sessions.some(x=>x.id===s.activeId)) && Object.values(s.answers).every(a=>validAnswer(a));
 }
+
+export function submitSession(state:StudyState,session:Session,questions:Question[],at=Date.now()):StudyState {
+ if(state.sessions.find(s=>s.id===session.id)?.endedAt!==undefined) return state;
+ const lookup=new Map(questions.map(q=>[q.id,q])); const answers={...state.answers};
+ for(const id of session.ids){const q=lookup.get(id);if(!q)continue;const key=answerKey(session,id),a=answers[key]??emptyAnswer();
+ answers[key]=q.kind==='compound'?{...a,checked:true,parts:Object.fromEntries((q.parts??[]).map(p=>[p.id,grade(p,a.parts[p.id]??emptyAnswer())]))}:grade(q,a);}
+ return {...state,answers,sessions:state.sessions.map(s=>s.id===session.id?{...s,endedAt:at}:s)};
+}
