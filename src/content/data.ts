@@ -103,4 +103,14 @@ integrated.forEach((x,r)=>{
  {id:'calculate',title:'결과 계산',kind:'short',points:20,prompt:p3,modelAnswer:m3,acceptedAnswers:[m3],explanation:`상황의 수치와 조건을 적용한 결과는 ${m3}이다. 앞의 해설에서 계산 과정과 단위를 확인하세요.`}
  ]});
 });
+const erTask=written.find(q=>q.round===7&&q.id.endsWith('-18'))!;
+Object.assign(erTask,{
+ kind:'diagram',topic:'ER 모델링',title:'도서 대출 데이터 모델',language:undefined,starterCode:undefined,
+ prompt:'회원은 여러 대출 기록을 가질 수 있고 각 대출은 한 회원에 속한다. 도서 한 권은 시간에 따라 여러 번 대출되며 각 대출은 도서 한 권에 해당한다. 회원(회원ID, 이름), 도서(도서ID, 제목), 대출(대출ID, 대출일, 반납일)의 엔터티·키·외래키와 관계를 그리시오. 회원·도서는 대출 기록 없이도 존재할 수 있다.',
+ modelAnswer:'회원의 회원ID, 도서의 도서ID, 대출의 대출ID를 기본키로 둔다. 대출에 회원ID와 도서ID 외래키를 둔다. 회원 1 — 0..* 대출, 도서 1 — 0..* 대출 관계이며 각각의 대출은 정확히 한 회원과 한 도서를 참조한다. 도식 기호 표현이 달라도 동일한 제약이면 인정한다.',
+ explanation:'다대다 이력인 회원–도서 대출을 대출 엔터티로 연결한다. 같은 회원이 같은 책을 다시 빌릴 수 있으므로 회원ID·도서ID 쌍만으로는 모든 대출 이력을 유일하게 식별할 수 없다.',
+ rubric:[{label:'회원·도서·대출 엔터티와 속성을 표현했다',points:20},{label:'기본키와 대출의 두 외래키를 표시했다',points:20},{label:'각 1 대 0..* 관계를 표시했다',points:10}],
+ keyPoints:['이력 엔터티로 다대다를 해소한다.','최소·최대 참여 수와 키를 함께 표현한다.'],
+ modelDiagram:{nodes:[{id:'member',shape:'entity',x:160,y:150,label:'회원\nPK 회원ID\n이름'},{id:'book',shape:'entity',x:640,y:150,label:'도서\nPK 도서ID\n제목'},{id:'loan',shape:'entity',x:400,y:400,label:'대출\nPK 대출ID\nFK 회원ID\nFK 도서ID\n대출일, 반납일'}],edges:[{id:'m-l',from:'member',to:'loan',kind:'line',label:'1 : 0..*'},{id:'b-l',from:'book',to:'loan',kind:'line',label:'1 : 0..*'}]}
+});
 export const dataQuestions:Question[]=[...multiple,...written].sort((a,b)=>a.round-b.round || Number(a.id.split('-').at(-1))-Number(b.id.split('-').at(-1)));
