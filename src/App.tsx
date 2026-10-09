@@ -521,7 +521,7 @@ export default function App() {
                   ? "개념 정리"
                   : "회차 선택"
                 : active?.round === 0
-                  ? "공식 문항 복습"
+                  ? "공개 문항 기반 학습"
                   : `${active?.round ? `${pad(active.round)}회차 · ` : ""}${active ? modeLabels[active.mode] : ""}`}
             </span>
           </div>
@@ -720,6 +720,9 @@ export default function App() {
                       )}
                     </div>
                     <OfficialCard
+                      startExam={() =>
+                        start("exam", questions.filter((q) => q.round === 0).map((q) => q.id), 0)
+                      }
                       start={() =>
                         start(
                           "study",
@@ -836,7 +839,7 @@ export default function App() {
                             >
                               <span className="pill">
                                 {item.round === 0
-                                  ? "공식"
+                                  ? "공개 기반"
                                   : `${item.round}회차`}
                               </span>
                               <div>
@@ -913,7 +916,7 @@ export default function App() {
                             </span>
                             <strong>
                               {s.round === 0
-                                ? "공식 문항"
+                                ? "공개 기반 학습"
                                 : s.round
                                   ? `${s.round}회차`
                                   : ""}{" "}
@@ -955,7 +958,7 @@ export default function App() {
                 <div className="session-heading">
                   <h1>문제 풀이 영역</h1>
                   <span>
-                    {q.round === 0 ? "공식 문항 복습" : `${q.round}회차`} ·{" "}
+                    {q.round === 0 ? "공개 문항 기반 학습" : `${q.round}회차`} ·{" "}
                     {domains.find((d) => d.id === q.domain)?.label}
                   </span>
                 </div>
@@ -1082,7 +1085,7 @@ export default function App() {
                 </div>
                 <div className="question-footnote">
                   {q.round === 0
-                    ? "사용자 제공 공식 시뮬레이션 캡처 기반 · 자체 작성 해설"
+                    ? `${q.officialNumber}번 · ${q.title.includes("재구성") ? "공개 출제 개념을 바탕으로 재구성" : "사용자 제공 문항"} · 자체 작성 해설`
                     : q.origin === "reference-adapted"
                       ? "제공된 참고자료를 바탕으로 구성한 학습 문항"
                       : "교재 개념에 기반한 창작 예상문제"}{" "}
@@ -1248,7 +1251,7 @@ function Filters({
     </div>
   );
 }
-function OfficialCard({ start, count }: { start: () => void; count: number }) {
+function OfficialCard({ start, startExam, count }: { start: () => void; startExam: () => void; count: number }) {
   return (
     <section className="official-card">
       <div className="official-icon">
@@ -1256,12 +1259,12 @@ function OfficialCard({ start, count }: { start: () => void; count: number }) {
       </div>
       <div>
         <span className="section-kicker">공식 시뮬레이션</span>
-        <h3>공식 시뮬레이션 · 제공 문항 해설 학습</h3>
+        <h3>공식 원본과 해설 학습</h3>
         <p>
-          공식 사이트 원본 실행과 제공된 공식 문항의 해설 학습을 구분합니다.
+          원문은 공식 사이트에서, 풀이와 관련 개념은 이곳에서 공부하세요.
           <br />
-          내부 복습: 현재 제공된 {count}문항. 공식 75문항 전체 복원본은
-          아닙니다.
+          내부 학습 {count}문항: 제공 문항 24개 + 출제 개념 기반 재구성 51개.
+          지문이 원문과 다를 수 있으며, 정답과 해설은 자체 작성했습니다.
         </p>
       </div>
       <div className="official-actions">
@@ -1275,6 +1278,9 @@ function OfficialCard({ start, count }: { start: () => void; count: number }) {
         </a>
         <button className="primary" disabled={!count} onClick={start}>
           사이트 안에서 해설 학습 <ArrowRight size={15} />
+        </button>
+        <button className="secondary" disabled={!count} onClick={startExam}>
+          내부 모의시험 · 150분
         </button>
       </div>
     </section>

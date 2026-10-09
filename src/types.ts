@@ -61,6 +61,7 @@ export interface QuestionPart {
 }
 export interface Question {
   id: string;
+  officialNumber?: number;
   round: number;
   domain: Domain;
   kind: QuestionKind;

@@ -86,6 +86,16 @@ for (const q of questions) {
   verify(q, q.id);
 }
 assert.equal(questions.filter((q) => q.round > 0).length, 750);
+const publicSet = questions.filter((q) => q.round === 0);
+assert.equal(publicSet.length, 75, "공개 기반 학습 문항 수");
+assert.equal(publicSet.reduce((sum, q) => sum + q.points, 0), 1000, "공개 기반 배점");
+assert.deepEqual(publicSet.map((q) => q.officialNumber), Array.from({ length: 75 }, (_, i) => i + 1), "공개 문항 번호와 순서");
+for (const [kind, expected] of Object.entries({ choice: 60, compound: 3, code: 4, diagram: 1, essay: 7 })) {
+  assert.equal(publicSet.filter((q) => q.kind === kind).length, expected, `공개 기반 ${kind} 유형`);
+}
+for (const [domain, expected] of Object.entries({ software: 21, data: 19, systems: 18, business: 17 })) {
+  assert.equal(publicSet.filter((q) => q.domain === domain).length, expected, `공개 기반 ${domain} 문항 수`);
+}
 for (let round = 1; round <= 10; round++) {
   const list = questions.filter((q) => q.round === round);
   assert.equal(list.length, 75, `${round}회차 문항수`);
@@ -111,5 +121,5 @@ for (let round = 1; round <= 10; round++) {
   }
 }
 console.log(
-  `검증 통과: 창작·재구성 750문항 + 제공된 공식 캡처 ${questions.filter((q) => q.round === 0).length}문항, 회차별 75문항·1000점`,
+  `검증 통과: 창작·재구성 750문항 + 공개 기반 학습 ${publicSet.length}문항, 각 세트 75문항·1000점`,
 );

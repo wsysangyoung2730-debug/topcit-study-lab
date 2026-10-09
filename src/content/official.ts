@@ -1,7 +1,11 @@
 import type { Diagram, Domain, Question, SourceRef } from "../types";
+import { expandedSoftwareQuestions } from "./official-expanded/software";
+import { expandedDataQuestions } from "./official-expanded/data";
+import { expandedSystemsQuestions } from "./official-expanded/systems";
+import { expandedBusinessQuestions } from "./official-expanded/business";
 
-// Only the captures supplied in this conversation are reconstructed here.
-// Round 0 is a separate practice collection, not a complete official exam or a new mock round.
+// Preserve the 24 supplied captures and their stable IDs for saved study records.
+// The other 51 items use original wording and examples based on public topic coverage.
 const bank: Question[] = [];
 const capture = (number: string, topic: string): SourceRef => ({
   title: "사용자 제공 TOPCIT 시뮬레이션 캡처",
@@ -138,7 +142,7 @@ choice(
 choice(
   "q74",
   "74",
-  "systems",
+  "business",
   "개인정보 비식별 처리",
   "아래에 적용된 개인정보 비식별화 방법을 고르시오.",
   [
@@ -977,4 +981,28 @@ bank.push({
   ],
 });
 
-export const officialQuestions: Question[] = bank;
+const legacyNumbers: Record<string, number> = {
+  "official-robots": 3,
+  "official-chasm": 67,
+  "official-risk-avoid": 71,
+};
+export const officialQuestions: Question[] = [
+  ...bank,
+  ...expandedSoftwareQuestions,
+  ...expandedDataQuestions,
+  ...expandedSystemsQuestions,
+  ...expandedBusinessQuestions,
+].map((q) => {
+  const officialNumber = legacyNumbers[q.id] ?? Number(q.id.replace("official-q", ""));
+  if (!legacyNumbers[q.id]) return { ...q, officialNumber };
+  return {
+    ...q,
+    officialNumber,
+    title: `제공 문항 ${officialNumber}`,
+    sources: q.sources.map((s) => s.title.includes("사용자 제공") ? {
+      ...s,
+      pages: `원문 ${officialNumber}번`,
+      note: `${s.note} 공개 시뮬레이션과 대조해 원문 번호를 확인했다.`,
+    } : s),
+  };
+}).sort((a, b) => a.officialNumber - b.officialNumber);
