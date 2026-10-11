@@ -10,11 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Verify Git conventions
+        if: github.event_name == 'pull_request'
+        run: node --import tsx scripts/check-git-rules.ts
       - run: npm run validate
       - run: npm test
       - run: npm run build
